@@ -9,7 +9,7 @@ public class Job
     public required string ClientName { get; set; }
     public required string ProjectName { get; set; }
     public required string SiteAddress { get; set; }
-    
+
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
 
