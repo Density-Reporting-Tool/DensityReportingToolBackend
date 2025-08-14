@@ -16,6 +16,7 @@ public class Sieve
 
     // Results ordered coarse→fine (include a Pan row)
     public ICollection<SieveResult> Results { get; set; } = [];
+    public ICollection<Proctor> Proctors { get; set; } = [];
 
     // Convenience checks (not mapped)
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]

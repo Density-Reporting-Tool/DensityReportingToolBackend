@@ -46,7 +46,6 @@ namespace DensityReportingToolBackend.Data
             base.OnModelCreating(modelBuilder);
 
             // ---------- People / Contractors ----------
-            // Contractor has a required 1→1 to PersonalInfo via DetailsId
             modelBuilder.Entity<Contractor>()
                 .HasOne(c => c.Details)
                 .WithMany()
@@ -54,21 +53,9 @@ namespace DensityReportingToolBackend.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ---------- Jobs ----------
-            // Explicit join for Job ↔ Contractor
             modelBuilder.Entity<JobContractor>()
                 .HasKey(jc => new { jc.JobId, jc.ContractorId });
 
-            modelBuilder.Entity<JobContractor>()
-                .HasOne(jc => jc.Job)
-                .WithMany(j => j.JobContracts)
-                .HasForeignKey(jc => jc.JobId);
-
-            modelBuilder.Entity<JobContractor>()
-                .HasOne(jc => jc.Contractor)
-                .WithMany(c => c.JobContracts)
-                .HasForeignKey(jc => jc.ContractorId);
-
-            // Job ↔ JobNote (join to Comment)
             modelBuilder.Entity<JobNote>(b =>
             {
                 b.HasOne(jn => jn.Job)
@@ -110,7 +97,6 @@ namespace DensityReportingToolBackend.Data
             });
 
             // ---------- DensityTest ↔ ShotPlacement (strict 1:1) ----------
-            // ShotPlacement holds the FK to DensityTest and must be unique
             modelBuilder.Entity<DensityTest>()
                 .HasOne(d => d.ShotPlacement)
                 .WithOne(s => s.DensityTest)
@@ -121,11 +107,29 @@ namespace DensityReportingToolBackend.Data
                 .HasIndex(s => s.DensityTestId)
                 .IsUnique();
 
-            // If your DensityTest class still has a ShotPlacementId property, ignore it (redundant)
-            modelBuilder.Entity<DensityTest>()
-                .Ignore(d => d.ShotPlacementId);
+            // Helpful indexes
+            modelBuilder.Entity<DensityTest>().HasIndex(d => d.ReportId);
+            modelBuilder.Entity<DensityTest>().HasIndex(d => d.ProctorId);
 
-            // ---------- Lab / Sieve / Proctor ----------
+            // PostgreSQL check constraints (property names match your model)
+            modelBuilder.Entity<DensityTest>().ToTable(t =>
+            {
+                t.HasCheckConstraint("ck_densitytest_moisture_0_100",
+                    "\"MoistureValue\" IS NULL OR (\"MoistureValue\" >= 0 AND \"MoistureValue\" <= 100)");
+
+                t.HasCheckConstraint("ck_densitytest_oversize_0_100",
+                    "\"CorrectedOversizePercentage\" IS NULL OR (\"CorrectedOversizePercentage\" >= 0 AND \"CorrectedOversizePercentage\" <= 100)");
+
+                t.HasCheckConstraint("ck_densitytest_compactionspec_0_110",
+                    "\"CompactionSpecification\" IS NULL OR (\"CompactionSpecification\" >= 0 AND \"CompactionSpecification\" <= 110)");
+            });
+
+            // Default UTC timestamp for CreatedDate
+            modelBuilder.Entity<DensityTest>()
+                .Property(d => d.CreatedDate)
+                .HasDefaultValueSql("timezone('utc', now())");
+
+            // ---------- Lab ----------
             modelBuilder.Entity<Sieve>()
                 .HasOne(s => s.LabTest)
                 .WithMany(lt => lt.Sieves)
@@ -136,7 +140,6 @@ namespace DensityReportingToolBackend.Data
                 .WithMany(s => s.Results)
                 .HasForeignKey(sr => sr.SieveId);
 
-            // Proctor optional link to Sieve
             modelBuilder.Entity<Proctor>()
                 .HasOne(p => p.Sieve)
                 .WithMany(s => s.Proctors)
@@ -154,7 +157,6 @@ namespace DensityReportingToolBackend.Data
                 .WithMany(pt => pt.Proctors)
                 .HasForeignKey(p => p.ProctorTypeId);
 
-            // Join: Proctor ↔ Job (extra usage)
             modelBuilder.Entity<ProctorAdditionalJob>()
                 .HasOne(pj => pj.Proctor)
                 .WithMany(p => p.AdditionalJobs)

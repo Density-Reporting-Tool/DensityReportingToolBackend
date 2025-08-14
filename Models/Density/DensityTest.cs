@@ -34,7 +34,7 @@ public class DensityTest
     public string? Location { get; set; }
 
     public ElevationReference? ElevationReference { get; set; }
-    public double? ElevationValue { get; set; }   // e.g +0.30 m above subgrade or geodetic m
+    public double? ElevationValue { get; set; }   // e.g +0.30 above subgrade or geodetic m
     public ElevationUnit? ElevationUnit { get; set; }  // m or ft
 
     public float? CorrectedOversizePercentage { get; set; }
@@ -47,7 +47,6 @@ public class DensityTest
     public int? DensityValue { get; set; }
     public int? MoistureValue { get; set; }
 
-    public int? ShotPlacementId { get; set; }
     public ShotPlacement? ShotPlacement { get; set; }
 
     public DateTime? CreatedDate { get; set; }
