@@ -16,12 +16,6 @@ namespace DensityReportingToolBackend.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<GeoPacificEmployee>()
-                .HasOne(e => e.Role)
-                .WithMany(r => r.Employees)
-                .HasForeignKey(e => e.RoleId)
-                .IsRequired();
         }
     }
 }
