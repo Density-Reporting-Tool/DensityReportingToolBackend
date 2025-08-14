@@ -3,6 +3,7 @@ using System;
 using DensityReportingToolBackend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DensityReportingToolBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250814212625_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -294,6 +297,11 @@ namespace DensityReportingToolBackend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasMaxLength(21)
+                        .HasColumnType("character varying(21)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
@@ -312,9 +320,11 @@ namespace DensityReportingToolBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PersonalInfos", (string)null);
+                    b.ToTable("PersonalInfos");
 
-                    b.UseTptMappingStrategy();
+                    b.HasDiscriminator().HasValue("PersonalInfo");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.Proctor", b =>
@@ -641,7 +651,7 @@ namespace DensityReportingToolBackend.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("GeoPacificEmployees", (string)null);
+                    b.HasDiscriminator().HasValue("GeoPacificEmployee");
                 });
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.Comment", b =>
@@ -931,12 +941,6 @@ namespace DensityReportingToolBackend.Migrations
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.GeoPacificEmployee", b =>
                 {
-                    b.HasOne("DensityReportingToolBackend.Models.PersonalInfo", null)
-                        .WithOne()
-                        .HasForeignKey("DensityReportingToolBackend.Models.GeoPacificEmployee", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("DensityReportingToolBackend.Models.Role", "Role")
                         .WithMany("Employees")
                         .HasForeignKey("RoleId")

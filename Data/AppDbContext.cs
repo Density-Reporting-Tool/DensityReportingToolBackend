@@ -44,6 +44,8 @@ namespace DensityReportingToolBackend.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<PersonalInfo>().ToTable("PersonalInfos");
+            modelBuilder.Entity<GeoPacificEmployee>().ToTable("GeoPacificEmployees");
 
             // ---------- People / Contractors ----------
             modelBuilder.Entity<Contractor>()
