@@ -1,5 +1,8 @@
 //Creates a WebApplicationBuilder which sets up configuration, logging, dependency injection, etc.
 //args comes from the command line and can be used for custom configuration.
+using DensityReportingToolBackend.Data;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -11,6 +14,10 @@ builder.Services.AddEndpointsApiExplorer();
 // Adds Swagger/OpenAPI generation, so you can view and test your API in /swagger
 builder.Services.AddSwaggerGen();
 
+// get our connection string in appsettings.development.json
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 // Returns a WebApplication instance, which represents your running server
 var app = builder.Build();
 
@@ -20,6 +27,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+
 // Redirects HTTP requests to HTTPS automatically
 app.UseHttpsRedirection();
 

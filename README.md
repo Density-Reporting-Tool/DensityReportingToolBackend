@@ -13,3 +13,11 @@ DensityReportingToolBackend.http: lets us run HTTP requests difrectly from Visua
 
 WeatherFrecast.cs: Simple data model
 Controllers/WeatherForecastController.cs: Controller template to return a list of WeatherForecasts
+
+
+
+Adding Migrations and Migrating
+
+Tools>NuGet Package Manager>Package Manager Console
+run 'dotnet ef migrations add <MigrationName>'
+run 'dotnet ef database update'
