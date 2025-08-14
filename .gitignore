@@ -1,0 +1,32 @@
+# Build folders
+bin/
+obj/
+
+# Visual Studio
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+
+# Rider IDE
+.idea/
+
+# NuGet packages (will be restored automatically)
+*.nupkg
+**/packages/*
+
+# Publish output
+publish/
+
+# Entity Framework migrations (optional: include if you want to track them)
+# Migrations/
+
+# User secrets
+appsettings.Development.json
+secrets.json
+
+# Misc
+*.dbmdl
+*.dotCover
+.vscode/

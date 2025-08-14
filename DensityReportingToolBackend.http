@@ -1,0 +1,6 @@
+@DensityReportingToolBackend_HostAddress = http://localhost:5013
+
+GET {{DensityReportingToolBackend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
