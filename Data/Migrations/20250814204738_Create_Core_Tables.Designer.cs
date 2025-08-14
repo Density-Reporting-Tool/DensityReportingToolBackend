@@ -3,17 +3,20 @@ using System;
 using DensityReportingToolBackend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace DensityReportingToolBackend.Migrations
+namespace DensityReportingToolBackend.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250814204738_Create_Core_Tables")]
+    partial class Create_Core_Tables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,7 +25,271 @@ namespace DensityReportingToolBackend.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("DensityReportingToolBackend.Models.GeoPacificEmployee", b =>
+            modelBuilder.Entity("DensityReportingToolBackend.Models.Comment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.Contractor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DetailsId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DetailsId");
+
+                    b.ToTable("Contractors");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.DensityTest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CompactionSpecification")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CompactionSpecificationUnit")
+                        .HasColumnType("integer");
+
+                    b.Property<float?>("CorrectedOversizePercentage")
+                        .HasColumnType("real");
+
+                    b.Property<DateTime?>("CreatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("timezone('utc', now())");
+
+                    b.Property<int?>("DensityValue")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ElevationReference")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ElevationUnit")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("ElevationValue")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime?>("LastEditDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("MoistureValue")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ProbeDepth")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ProbeDepthUnit")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProctorId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReportId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TestArea")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProctorId");
+
+                    b.HasIndex("ReportId");
+
+                    b.ToTable("DensityTests", t =>
+                        {
+                            t.HasCheckConstraint("ck_densitytest_compactionspec_0_110", "\"CompactionSpecification\" IS NULL OR (\"CompactionSpecification\" >= 0 AND \"CompactionSpecification\" <= 110)");
+
+                            t.HasCheckConstraint("ck_densitytest_moisture_0_100", "\"MoistureValue\" IS NULL OR (\"MoistureValue\" >= 0 AND \"MoistureValue\" <= 100)");
+
+                            t.HasCheckConstraint("ck_densitytest_oversize_0_100", "\"CorrectedOversizePercentage\" IS NULL OR (\"CorrectedOversizePercentage\" >= 0 AND \"CorrectedOversizePercentage\" <= 100)");
+                        });
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.DensityTestComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CommentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DensityTestId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("DensityTestId");
+
+                    b.ToTable("DensityTestComments");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.Job", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClientName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ProjectManagerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProjectName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SiteAddress")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectManagerId");
+
+                    b.ToTable("Jobs");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.JobContractor", b =>
+                {
+                    b.Property<int>("JobId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ContractorId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("JobId", "ContractorId");
+
+                    b.HasIndex("ContractorId");
+
+                    b.ToTable("JobContractors");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.JobNote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CommentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("JobId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("JobId");
+
+                    b.ToTable("JobNotes");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.LabTest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ImportLocation")
+                        .HasColumnType("text");
+
+                    b.Property<int>("JobId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MaterialType")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ReceiveDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId");
+
+                    b.ToTable("LabTests");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.MemoComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CommentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MemoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("MemoId");
+
+                    b.ToTable("MemoComments");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.PersonalInfo", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -53,9 +320,11 @@ namespace DensityReportingToolBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PersonalInfos", (string)null);
+                    b.ToTable("PersonalInfos");
 
-                    b.UseTptMappingStrategy();
+                    b.HasDiscriminator().HasValue("PersonalInfo");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.Proctor", b =>
@@ -382,7 +651,7 @@ namespace DensityReportingToolBackend.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("GeoPacificEmployees", (string)null);
+                    b.HasDiscriminator().HasValue("GeoPacificEmployee");
                 });
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.Comment", b =>
@@ -672,12 +941,6 @@ namespace DensityReportingToolBackend.Migrations
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.GeoPacificEmployee", b =>
                 {
-                    b.HasOne("DensityReportingToolBackend.Models.PersonalInfo", null)
-                        .WithOne()
-                        .HasForeignKey("DensityReportingToolBackend.Models.GeoPacificEmployee", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("DensityReportingToolBackend.Models.Role", "Role")
                         .WithMany("Employees")
                         .HasForeignKey("RoleId")
@@ -687,9 +950,90 @@ namespace DensityReportingToolBackend.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("DensityReportingToolBackend.Models.Comment", b =>
+                {
+                    b.Navigation("DensityTestComments");
+
+                    b.Navigation("JobNotes");
+
+                    b.Navigation("MemoComments");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.Contractor", b =>
+                {
+                    b.Navigation("JobContracts");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.DensityTest", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("ShotPlacement");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.Job", b =>
+                {
+                    b.Navigation("JobContracts");
+
+                    b.Navigation("JobNotes");
+
+                    b.Navigation("LabTests");
+
+                    b.Navigation("ProctorAdditionalJobs");
+
+                    b.Navigation("Reports");
+
+                    b.Navigation("SitePlans");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.LabTest", b =>
+                {
+                    b.Navigation("Proctors");
+
+                    b.Navigation("Sieves");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.Proctor", b =>
+                {
+                    b.Navigation("AdditionalJobs");
+
+                    b.Navigation("DensityTests");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.ProctorType", b =>
+                {
+                    b.Navigation("Proctors");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.Report", b =>
+                {
+                    b.Navigation("DensityTests");
+
+                    b.Navigation("Memos");
+
+                    b.Navigation("Photos");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.ReportMemo", b =>
+                {
+                    b.Navigation("Comments");
+                });
+
             modelBuilder.Entity("DensityReportingToolBackend.Models.Role", b =>
                 {
                     b.Navigation("Employees");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.Sieve", b =>
+                {
+                    b.Navigation("Proctors");
+
+                    b.Navigation("Results");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.SitePlan", b =>
+                {
+                    b.Navigation("ShotPlacements");
                 });
 #pragma warning restore 612, 618
         }
