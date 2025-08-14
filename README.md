@@ -21,3 +21,7 @@ Adding Migrations and Migrating
 Tools>NuGet Package Manager>Package Manager Console
 run 'dotnet ef migrations add <MigrationName>'
 run 'dotnet ef database update'
+
+
+Running the Server:
+run 'dotnet run'
