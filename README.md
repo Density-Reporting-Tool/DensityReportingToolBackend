@@ -10,3 +10,6 @@ Properties/launchSettings.json: controls how the app is run during development, 
 Properties/PublishProfiles/*: Contains .pubxml files which determine where you're deploying your app and the configuration
 
 DensityReportingToolBackend.http: lets us run HTTP requests difrectly from VisualStudio without needing Postman, curl, etc. OPTIONAL
+
+WeatherFrecast.cs: Simple data model
+Controllers/WeatherForecastController.cs: Controller template to return a list of WeatherForecasts
