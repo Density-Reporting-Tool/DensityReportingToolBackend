@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace DensityReportingToolBackend.Data.Migrations
+namespace DensityReportingToolBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250814204738_Create_Core_Tables")]
-    partial class Create_Core_Tables
+    [Migration("20250814213321_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -297,11 +297,6 @@ namespace DensityReportingToolBackend.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasMaxLength(21)
-                        .HasColumnType("character varying(21)");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
@@ -320,11 +315,9 @@ namespace DensityReportingToolBackend.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PersonalInfos");
+                    b.ToTable("PersonalInfos", (string)null);
 
-                    b.HasDiscriminator().HasValue("PersonalInfo");
-
-                    b.UseTphMappingStrategy();
+                    b.UseTptMappingStrategy();
                 });
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.Proctor", b =>
@@ -651,7 +644,7 @@ namespace DensityReportingToolBackend.Data.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.HasDiscriminator().HasValue("GeoPacificEmployee");
+                    b.ToTable("GeoPacificEmployees", (string)null);
                 });
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.Comment", b =>
@@ -941,6 +934,12 @@ namespace DensityReportingToolBackend.Data.Migrations
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.GeoPacificEmployee", b =>
                 {
+                    b.HasOne("DensityReportingToolBackend.Models.PersonalInfo", null)
+                        .WithOne()
+                        .HasForeignKey("DensityReportingToolBackend.Models.GeoPacificEmployee", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("DensityReportingToolBackend.Models.Role", "Role")
                         .WithMany("Employees")
                         .HasForeignKey("RoleId")
