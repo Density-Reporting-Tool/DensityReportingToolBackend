@@ -19,12 +19,24 @@ namespace DensityReportingToolBackend.Controllers
         }
 
         [HttpGet(Name = "GetGeoPacificEmployees")]
-        public async Task<IEnumerable<GeoPacificEmployee>> Get()
+        public async Task<IEnumerable<object>> Get()
         {
-            // Return all employees from the database
-            return await _dbContext.GeoPacificEmployees
-                .Include(e => e.Role)
+            // Return all employees from the database with role information
+            // Using projection to avoid circular references
+            var employees = await _dbContext.GeoPacificEmployees
+                .Select(e => new
+                {
+                    e.Id,
+                    e.FirstName,
+                    e.LastName,
+                    e.Email,
+                    e.PhoneNumber,
+                    RoleId = e.RoleId,
+                    RoleTitle = e.Role.RoleTitle
+                })
                 .ToListAsync();
+            
+            return employees;
         }
     }
 }
