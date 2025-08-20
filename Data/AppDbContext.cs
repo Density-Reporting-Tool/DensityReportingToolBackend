@@ -18,6 +18,8 @@ namespace DensityReportingToolBackend.Data
         public DbSet<JobContractor> JobContractors => Set<JobContractor>();
         public DbSet<JobNote> JobNotes => Set<JobNote>();
         public DbSet<SitePlan> SitePlans => Set<SitePlan>();
+        public DbSet<DistributionList> DistributionLists => Set<DistributionList>();
+        public DbSet<DistributionMember> DistributionMembers => Set<DistributionMember>();
 
         // Reports
         public DbSet<Report> Reports => Set<Report>();
@@ -168,6 +170,17 @@ namespace DensityReportingToolBackend.Data
                 .HasOne(pj => pj.Job)
                 .WithMany(j => j.ProctorAdditionalJobs)
                 .HasForeignKey(pj => pj.JobId);
+
+            // ---------- Distribution Lists ----------
+            modelBuilder.Entity<DistributionMember>()
+                .HasOne(dm => dm.DistributionList)
+                .WithMany(dl => dl.DistributionMembers)
+                .HasForeignKey(dm => dm.DistributionListId);
+
+            modelBuilder.Entity<DistributionMember>()
+                .HasOne(dm => dm.PersonalInfo)
+                .WithMany()
+                .HasForeignKey(dm => dm.PersonalInfoId);
         }
     }
 }
