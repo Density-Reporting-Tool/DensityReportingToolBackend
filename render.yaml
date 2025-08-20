@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: density-reporting-backend
+    env: dotnet
+    plan: free
+    buildCommand: dotnet build -c Release
+    startCommand: dotnet run --environment Production
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DB_HOST
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
