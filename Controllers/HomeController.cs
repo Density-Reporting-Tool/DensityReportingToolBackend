@@ -6,27 +6,29 @@ namespace DensityReportingToolBackend.Controllers
     [Route("[controller]")]
     public class HomeController : ControllerBase
     {
-        [HttpGet]
-        public IActionResult Index()
+        [HttpGet("/")]
+        public IActionResult Root()
         {
             return Ok(new { 
                 message = "Density Reporting Tool Backend API", 
                 status = "running", 
                 timestamp = DateTime.UtcNow,
                 endpoints = new[] { 
-                    "/health", 
+                    "/api/test", 
                     "/api/test/health", 
-                    "/api/test",
-                    "/swagger"
-                },
-                documentation = "/swagger"
+                    "/swagger" 
+                }
             });
         }
 
-        [HttpGet("/")]
-        public IActionResult Root()
+        [HttpGet("health")]
+        public IActionResult Health()
         {
-            return Redirect("/home");
+            return Ok(new { 
+                status = "healthy", 
+                timestamp = DateTime.UtcNow,
+                service = "Density Reporting Tool Backend"
+            });
         }
     }
 }

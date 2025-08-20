@@ -44,22 +44,5 @@ namespace DensityReportingToolBackend.Controllers
         {
             return Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
         }
-
-        [HttpGet("api/health")]
-        public IActionResult ApiHealth()
-        {
-            return Ok(new { status = "healthy", timestamp = DateTime.UtcNow, endpoint = "api/health" });
-        }
-
-        [HttpGet("/")]
-        public IActionResult Root()
-        {
-            return Ok(new { 
-                message = "Density Reporting Tool Backend API", 
-                status = "running", 
-                timestamp = DateTime.UtcNow,
-                endpoints = new[] { "/health", "/api/test/health", "/api/test" }
-            });
-        }
     }
 }

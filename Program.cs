@@ -22,20 +22,18 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 "http://localhost:3000", 
                 "https://localhost:3000",
-                "http://localhost:5173",  // Vite default port
-                "https://localhost:5173"
+                "http://localhost:5173"  // Vite default port
               )
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
     
-    // Add policy for production frontend (update with your actual frontend domain)
+    // Add policy for production frontend
     options.AddPolicy("AllowProduction", policy =>
     {
         policy.WithOrigins(
-                "https://your-frontend-domain.com",  // Update this with your actual frontend domain
-                "https://your-frontend-name.vercel.app"  // If using Vercel
+                "https://density-reporting-tool-frontend-42lpottl6.vercel.app"  // Remove trailing slash
               )
               .AllowAnyHeader()
               .AllowAnyMethod()
