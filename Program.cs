@@ -22,7 +22,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 "http://localhost:3000", 
                 "https://localhost:3000",
-                "http://localhost:5173"  // Vite default port
+                "http://localhost:5173",  // Vite default port
+                "https://localhost:5173"  // Vite HTTPS
               )
               .AllowAnyHeader()
               .AllowAnyMethod()
@@ -33,11 +34,20 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowProduction", policy =>
     {
         policy.WithOrigins(
-                "https://density-reporting-tool-frontend-42lpottl6.vercel.app"  // Remove trailing slash
+                "https://density-reporting-tool-frontend-42lpottl6.vercel.app",  // Vercel
+                "https://density-reporting-tool-frontend.vercel.app"  // Alternative Vercel URL
               )
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
+    });
+
+    // Add a more permissive policy for testing
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
@@ -62,13 +72,20 @@ if (app.Environment.IsDevelopment())
 }
 
 // Use CORS before authorization and routing
+// For development, use AllowFrontend policy
 if (app.Environment.IsDevelopment())
 {
     app.UseCors("AllowFrontend");
 }
-else
+// For production, use AllowProduction policy
+else if (app.Environment.IsProduction())
 {
     app.UseCors("AllowProduction");
+}
+// Fallback to AllowAll for any other environment (like Render staging)
+else
+{
+    app.UseCors("AllowAll");
 }
 
 app.UseAuthorization();
