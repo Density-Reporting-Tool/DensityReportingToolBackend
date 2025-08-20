@@ -14,7 +14,24 @@ builder.Services.AddEndpointsApiExplorer();
 // Adds Swagger/OpenAPI generation, so you can view and test your API in /swagger
 builder.Services.AddSwaggerGen();
 
-// get our connection string in appsettings.development.json
+// Add CORS to allow frontend connections
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:3000", 
+                "https://localhost:3000",
+                "http://localhost:5173",  // Vite default port
+                "https://localhost:5173"
+              )
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+// get our connection string in appsettings.json or environment variables
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -28,9 +45,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Only use HTTPS redirection in development
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
-// Redirects HTTP requests to HTTPS automatically
-app.UseHttpsRedirection();
+// Use CORS before authorization and routing
+app.UseCors("AllowFrontend");
 
 app.UseAuthorization();
 

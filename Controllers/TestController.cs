@@ -38,5 +38,11 @@ namespace DensityReportingToolBackend.Controllers
             
             return employees;
         }
+
+        [HttpGet("health")]
+        public IActionResult Health()
+        {
+            return Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
+        }
     }
 }
