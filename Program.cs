@@ -29,6 +29,18 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowCredentials();
     });
+    
+    // Add policy for production frontend (update with your actual frontend domain)
+    options.AddPolicy("AllowProduction", policy =>
+    {
+        policy.WithOrigins(
+                "https://your-frontend-domain.com",  // Update this with your actual frontend domain
+                "https://your-frontend-name.vercel.app"  // If using Vercel
+              )
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
 });
 
 // get our connection string in appsettings.json or environment variables
@@ -52,7 +64,14 @@ if (app.Environment.IsDevelopment())
 }
 
 // Use CORS before authorization and routing
-app.UseCors("AllowFrontend");
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("AllowFrontend");
+}
+else
+{
+    app.UseCors("AllowProduction");
+}
 
 app.UseAuthorization();
 
