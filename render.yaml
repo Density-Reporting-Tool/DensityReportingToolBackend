@@ -1,18 +1,23 @@
 services:
   - type: web
     name: density-reporting-backend
-    env: dotnet
+    env: docker
     plan: free
-    buildCommand: dotnet build -c Release
-    startCommand: dotnet run --environment Production
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:8080
       - key: DB_HOST
-        sync: false
+        value: ep-purple-art-aa9fvlr7-pooler.westus3.azure.neon.tech
       - key: DB_NAME
-        sync: false
+        value: DensityReportingTool
       - key: DB_USER
-        sync: false
+        value: neondb_owner
       - key: DB_PASSWORD
-        sync: false
+        value: npg_ygUF4x0pNEbX
+      - key: DB_SSLMODE
+        value: require
+      - key: DB_CHANNELBINDING
+        value: require
