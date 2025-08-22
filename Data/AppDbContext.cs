@@ -18,6 +18,7 @@ namespace DensityReportingToolBackend.Data
         public DbSet<JobContractor> JobContractors => Set<JobContractor>();
         public DbSet<JobNote> JobNotes => Set<JobNote>();
         public DbSet<SitePlan> SitePlans => Set<SitePlan>();
+        public DbSet<JobProjectManager> JobProjectManagers => Set<JobProjectManager>();
         //Distribution List
         public DbSet<DistributionList> DistributionLists => Set<DistributionList>();
         public DbSet<DistributionMember> DistributionMembers => Set<DistributionMember>();
@@ -60,6 +61,18 @@ namespace DensityReportingToolBackend.Data
             // ---------- Jobs ----------
             modelBuilder.Entity<JobContractor>()
                 .HasKey(jc => new { jc.JobId, jc.ContractorId });
+
+            modelBuilder.Entity<JobProjectManager>()
+                .HasOne(jpm => jpm.Job)
+                .WithMany(j => j.ProjectManagers)
+                .HasForeignKey(jpm => jpm.JobId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<JobProjectManager>()
+                .HasOne(jpm => jpm.Employee)
+                .WithMany()
+                .HasForeignKey(jpm => jpm.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<JobNote>(b =>
             {

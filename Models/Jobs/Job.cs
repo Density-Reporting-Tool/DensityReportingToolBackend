@@ -3,8 +3,10 @@ namespace DensityReportingToolBackend.Models;
 public class Job
 {
     public int Id { get; set; }
-    public int ProjectManagerId { get; set; }
-    public GeoPacificEmployee ProjectManager { get; set; } = null!;
+    
+    // Remove the single ProjectManagerId and ProjectManager properties
+    // public int ProjectManagerId { get; set; }
+    // public GeoPacificEmployee ProjectManager { get; set; } = null!;
 
     public required string ClientName { get; set; }
     public required string ProjectName { get; set; }
@@ -20,6 +22,25 @@ public class Job
     public ICollection<ProctorAdditionalJob> ProctorAdditionalJobs { get; set; } = [];
     public ICollection<JobNote> JobNotes { get; set; } = [];
     public ICollection<DistributionList> DistributionLists { get; set; } = [];
+    public ICollection<JobProjectManager> ProjectManagers { get; set; } = [];
+
+    // Computed properties for easy access to project managers
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public ICollection<GeoPacificEmployee> ActiveProjectManagers => 
+        ProjectManagers?
+            .Where(pm => pm.IsActive && pm.EndDate == null)
+            .Select(pm => pm.Employee)
+            .ToList() ?? [];
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public GeoPacificEmployee? PrimaryContact => 
+        ActiveProjectManagers.FirstOrDefault();
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public ICollection<GeoPacificEmployee> AllProjectManagers => 
+        ProjectManagers?
+            .Select(pm => pm.Employee)
+            .ToList() ?? [];
 
     // Convenience property to directly access proctors (not mapped to database)
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]

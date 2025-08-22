@@ -27,7 +27,8 @@ namespace DensityReportingToolBackend.Controllers
                 _logger.LogInformation("Retrieving all jobs");
                 
                 var jobs = await _dbContext.Jobs
-                    .Include(j => j.ProjectManager)
+                    .Include(j => j.ProjectManagers)
+                        .ThenInclude(jpm => jpm.Employee)
                     .Include(j => j.DistributionLists)
                     .Include(j => j.JobContracts)
                         .ThenInclude(jc => jc.Contractor)
@@ -46,13 +47,18 @@ namespace DensityReportingToolBackend.Controllers
                         j.SiteAddress,
                         j.StartDate,
                         j.EndDate,
-                        ProjectManager = new
-                        {
-                            j.ProjectManager.Id,
-                            j.ProjectManager.FirstName,
-                            j.ProjectManager.LastName,
-                            j.ProjectManager.Email
-                        },
+                        ProjectManagers = j.ProjectManagers
+                            .Where(pm => pm.IsActive && pm.EndDate == null)
+                            .Select(pm => new
+                            {
+                                pm.Employee.Id,
+                                pm.Employee.FirstName,
+                                pm.Employee.LastName,
+                                pm.Employee.Email,
+                                pm.Employee.PhoneNumber,
+                                pm.Notes,
+                                pm.StartDate
+                            }),
                         DistributionLists = j.DistributionLists.Select(dl => new
                         {
                             dl.Id,
@@ -114,7 +120,8 @@ namespace DensityReportingToolBackend.Controllers
                 _logger.LogInformation("Retrieving job with ID: {JobId}", id);
                 
                 var job = await _dbContext.Jobs
-                    .Include(j => j.ProjectManager)
+                    .Include(j => j.ProjectManagers)
+                        .ThenInclude(jpm => jpm.Employee)
                     .Include(j => j.DistributionLists)
                         .ThenInclude(dl => dl.DistributionMembers)
                             .ThenInclude(dm => dm.PersonalInfo)
@@ -146,13 +153,18 @@ namespace DensityReportingToolBackend.Controllers
                     job.SiteAddress,
                     job.StartDate,
                     job.EndDate,
-                    ProjectManager = new
-                    {
-                        job.ProjectManager.Id,
-                        job.ProjectManager.FirstName,
-                        job.ProjectManager.LastName,
-                        job.ProjectManager.Email
-                    },
+                    ProjectManagers = job.ProjectManagers
+                        .Where(pm => pm.IsActive && pm.EndDate == null)
+                        .Select(pm => new
+                        {
+                            pm.Employee.Id,
+                            pm.Employee.FirstName,
+                            pm.Employee.LastName,
+                            pm.Employee.Email,
+                            pm.Employee.PhoneNumber,
+                            pm.Notes,
+                            pm.StartDate
+                        }),
                     DistributionLists = job.DistributionLists.Select(dl => new
                     {
                         dl.Id,
@@ -247,16 +259,6 @@ namespace DensityReportingToolBackend.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // Validate that the project manager exists
-                var projectManager = await _dbContext.GeoPacificEmployees
-                    .FirstOrDefaultAsync(e => e.Id == job.ProjectManagerId);
-                
-                if (projectManager == null)
-                {
-                    _logger.LogWarning("Project manager with ID {ProjectManagerId} not found", job.ProjectManagerId);
-                    return BadRequest($"Project manager with ID {job.ProjectManagerId} not found");
-                }
-
                 _dbContext.Jobs.Add(job);
                 await _dbContext.SaveChangesAsync();
 
@@ -297,23 +299,12 @@ namespace DensityReportingToolBackend.Controllers
                     return NotFound($"Job with ID {id} not found");
                 }
 
-                // Validate that the project manager exists
-                var projectManager = await _dbContext.GeoPacificEmployees
-                    .FirstOrDefaultAsync(e => e.Id == job.ProjectManagerId);
-                
-                if (projectManager == null)
-                {
-                    _logger.LogWarning("Project manager with ID {ProjectManagerId} not found", job.ProjectManagerId);
-                    return BadRequest($"Project manager with ID {job.ProjectManagerId} not found");
-                }
-
                 // Update properties
                 existingJob.ClientName = job.ClientName;
                 existingJob.ProjectName = job.ProjectName;
                 existingJob.SiteAddress = job.SiteAddress;
                 existingJob.StartDate = job.StartDate;
                 existingJob.EndDate = job.EndDate;
-                existingJob.ProjectManagerId = job.ProjectManagerId;
 
                 await _dbContext.SaveChangesAsync();
 
@@ -499,6 +490,156 @@ namespace DensityReportingToolBackend.Controllers
             {
                 _logger.LogError(ex, "Error retrieving proctors for job {JobId}", id);
                 return StatusCode(500, "Internal server error occurred while retrieving proctors");
+            }
+        }
+
+        // GET: api/jobs/{id}/project-managers
+        [HttpGet("{id}/project-managers")]
+        public async Task<ActionResult<object>> GetJobProjectManagers(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Retrieving project managers for job ID: {JobId}", id);
+                
+                // First check if the job exists
+                var jobExists = await _dbContext.Jobs.AnyAsync(j => j.Id == id);
+                if (!jobExists)
+                {
+                    _logger.LogWarning("Job with ID {JobId} not found", id);
+                    return NotFound($"Job with ID {id} not found");
+                }
+
+                var projectManagers = await _dbContext.JobProjectManagers
+                    .Where(jpm => jpm.JobId == id)
+                    .Include(jpm => jpm.Employee)
+                    .OrderByDescending(jpm => jpm.StartDate)
+                    .Select(jpm => new
+                    {
+                        jpm.Id,
+                        jpm.StartDate,
+                        jpm.EndDate,
+                        jpm.IsActive,
+                        jpm.Notes,
+                        jpm.CreatedDate,
+                        jpm.LastModifiedDate,
+                        Employee = new
+                        {
+                            jpm.Employee.Id,
+                            jpm.Employee.FirstName,
+                            jpm.Employee.LastName,
+                            jpm.Employee.Email,
+                            jpm.Employee.PhoneNumber
+                        }
+                    })
+                    .ToListAsync();
+
+                var result = new
+                {
+                    ActiveContacts = projectManagers.Where(pm => pm.IsActive && pm.EndDate == null),
+                    ContactHistory = projectManagers,
+                    TotalCount = projectManagers.Count
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving project managers for job {JobId}", id);
+                return StatusCode(500, "Internal server error occurred while retrieving project managers");
+            }
+        }
+
+        // POST: api/jobs/{id}/project-managers
+        [HttpPost("{id}/project-managers")]
+        public async Task<ActionResult<JobProjectManager>> AddProjectManager(int id, [FromBody] JobProjectManager projectManager)
+        {
+            try
+            {
+                _logger.LogInformation("Adding project manager to job ID: {JobId}", id);
+                
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for project manager addition");
+                    return BadRequest(ModelState);
+                }
+
+                // Check if the job exists
+                var job = await _dbContext.Jobs.FindAsync(id);
+                if (job == null)
+                {
+                    _logger.LogWarning("Job with ID {JobId} not found", id);
+                    return NotFound($"Job with ID {id} not found");
+                }
+
+                // Check if the employee exists
+                var employee = await _dbContext.GeoPacificEmployees.FindAsync(projectManager.EmployeeId);
+                if (employee == null)
+                {
+                    _logger.LogWarning("Employee with ID {EmployeeId} not found", projectManager.EmployeeId);
+                    return BadRequest($"Employee with ID {projectManager.EmployeeId} not found");
+                }
+
+                // Set the job ID
+                projectManager.JobId = id;
+                projectManager.CreatedDate = DateTime.UtcNow;
+
+                _dbContext.JobProjectManagers.Add(projectManager);
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully added project manager {EmployeeId} to job {JobId}", 
+                    projectManager.EmployeeId, id);
+                return CreatedAtAction(nameof(GetJobProjectManagers), new { id }, projectManager);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding project manager to job {JobId}", id);
+                return StatusCode(500, "Internal server error occurred while adding project manager");
+            }
+        }
+
+        // PUT: api/jobs/{id}/project-managers/{projectManagerId}
+        [HttpPut("{id}/project-managers/{projectManagerId}")]
+        public async Task<IActionResult> UpdateProjectManager(int id, int projectManagerId, [FromBody] JobProjectManager projectManager)
+        {
+            try
+            {
+                _logger.LogInformation("Updating project manager {ProjectManagerId} for job {JobId}", projectManagerId, id);
+                
+                if (projectManagerId != projectManager.Id)
+                {
+                    return BadRequest("ID mismatch");
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var existingProjectManager = await _dbContext.JobProjectManagers
+                    .FirstOrDefaultAsync(jpm => jpm.Id == projectManagerId && jpm.JobId == id);
+                
+                if (existingProjectManager == null)
+                {
+                    return NotFound($"Project manager not found");
+                }
+
+                // Update properties
+                existingProjectManager.StartDate = projectManager.StartDate;
+                existingProjectManager.EndDate = projectManager.EndDate;
+                existingProjectManager.IsActive = projectManager.IsActive;
+                existingProjectManager.Notes = projectManager.Notes;
+                existingProjectManager.LastModifiedDate = DateTime.UtcNow;
+
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully updated project manager {ProjectManagerId} for job {JobId}", 
+                    projectManagerId, id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating project manager {ProjectManagerId} for job {JobId}", projectManagerId, id);
+                return StatusCode(500, "Internal server error occurred while updating project manager");
             }
         }
 
