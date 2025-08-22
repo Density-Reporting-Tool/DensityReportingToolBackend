@@ -4,11 +4,10 @@ public class Job
 {
     public int Id { get; set; }
     
-    // Remove the single ProjectManagerId and ProjectManager properties
-    // public int ProjectManagerId { get; set; }
-    // public GeoPacificEmployee ProjectManager { get; set; } = null!;
-
-    public required string ClientName { get; set; }
+    // Client relationship
+    public int ClientId { get; set; }
+    public Client Client { get; set; } = null!;
+    
     public required string ProjectName { get; set; }
     public required string SiteAddress { get; set; }
 

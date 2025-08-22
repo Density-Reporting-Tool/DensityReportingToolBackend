@@ -65,7 +65,7 @@ namespace DensityReportingToolBackend.Controllers
                     .Select(j => new
                     {
                         j.Id,
-                        j.ClientName,
+                        ClientName = j.Client.Name,
                         j.ProjectName,
                         j.SiteAddress,
                         j.StartDate,
@@ -91,8 +91,10 @@ namespace DensityReportingToolBackend.Controllers
                 _logger.LogInformation("Retrieving job with ID: {JobId}", id);
                 
                 var job = await _dbContext.Jobs
+                    .Include(j => j.Client)
                     .Include(j => j.ProjectManagers)
                         .ThenInclude(jpm => jpm.Employee)
+                            .ThenInclude(e => e.PersonalInfo)
                     .Include(j => j.SiteContacts)
                         .ThenInclude(jsc => jsc.PersonalInfo)
                     .Include(j => j.DistributionLists)
@@ -100,7 +102,7 @@ namespace DensityReportingToolBackend.Controllers
                             .ThenInclude(dm => dm.PersonalInfo)
                     .Include(j => j.JobContracts)
                         .ThenInclude(jc => jc.Contractor)
-                            .ThenInclude(c => c.Details)
+                            .ThenInclude(c => c.PersonalInfo)
                     .Include(j => j.LabTests)
                         .ThenInclude(lt => lt.Proctors)
                             .ThenInclude(p => p.ProctorType)
@@ -109,6 +111,7 @@ namespace DensityReportingToolBackend.Controllers
                             .ThenInclude(p => p.ProctorType)
                     .Include(j => j.Reports)
                     .Include(j => j.SitePlans)
+                    .AsSplitQuery()
                     .FirstOrDefaultAsync(j => j.Id == id);
 
                 if (job == null)
@@ -121,25 +124,25 @@ namespace DensityReportingToolBackend.Controllers
                 var result = new
                 {
                     job.Id,
-                    job.ClientName,
+                    ClientName = job.Client?.Name,
                     job.ProjectName,
                     job.SiteAddress,
                     job.StartDate,
                     job.EndDate,
-                    ProjectManagers = job.ProjectManagers
-                        .Where(pm => pm.IsActive && pm.EndDate == null)
+                    ProjectManagers = job.ProjectManagers?
+                        .Where(pm => pm.IsActive && pm.EndDate == null && pm.Employee?.PersonalInfo != null)
                         .Select(pm => new
                         {
                             pm.Employee.Id,
-                            pm.Employee.FirstName,
-                            pm.Employee.LastName,
-                            pm.Employee.Email,
-                            pm.Employee.PhoneNumber,
+                            pm.Employee.PersonalInfo.FirstName,
+                            pm.Employee.PersonalInfo.LastName,
+                            pm.Employee.PersonalInfo.Email,
+                            pm.Employee.PersonalInfo.PhoneNumber,
                             pm.Notes,
                             pm.StartDate
-                        }),
-                    SiteContacts = job.SiteContacts
-                        .Where(sc => sc.IsActive && sc.EndDate == null)
+                        }) ?? Enumerable.Empty<object>(),
+                    SiteContacts = job.SiteContacts?
+                        .Where(sc => sc.IsActive && sc.EndDate == null && sc.PersonalInfo != null)
                         .Select(sc => new
                         {
                             sc.PersonalInfo.Id,
@@ -153,76 +156,90 @@ namespace DensityReportingToolBackend.Controllers
                             sc.IsPrimary,
                             sc.Notes,
                             sc.StartDate
-                        }),
-                    DistributionLists = job.DistributionLists.Select(dl => new
-                    {
-                        dl.Id,
-                        dl.Name,
-                        dl.Description,
-                        Members = dl.DistributionMembers.Select(dm => new
+                        }) ?? Enumerable.Empty<object>(),
+                    DistributionLists = job.DistributionLists?
+                        .Where(dl => dl.DistributionMembers != null)
+                        .Select(dl => new
                         {
-                            dm.PersonalInfo.Id,
-                            dm.PersonalInfo.FirstName,
-                            dm.PersonalInfo.LastName,
-                            dm.PersonalInfo.Email
-                        })
-                    }),
-                    Contractors = job.JobContracts.Select(jc => new
-                    {
-                        jc.Contractor.Id,
-                        jc.Contractor.Details.FirstName,
-                        jc.Contractor.Details.LastName,
-                        jc.Contractor.Details.Email
-                    }),
-                    Reports = job.Reports.Select(r => new
-                    {
-                        r.Id,
-                        r.ReportNumber,
-                        r.StartDate,
-                        r.SubmitDate,
-                        r.DistributeDate
-                    }),
-                    SitePlans = job.SitePlans.Select(sp => new
-                    {
-                        sp.Id,
-                        sp.SitePlanUrl
-                    }),
-                    DirectProctors = job.LabTests.SelectMany(lt => lt.Proctors).Select(p => new
-                    {
-                        p.Id,
-                        p.ProctorID,
-                        p.MaxDensity,
-                        p.CorrectedDensity,
-                        p.OptimumMoistureContent,
-                        p.SpecificGravity,
-                        ProctorType = new
+                            dl.Id,
+                            dl.Name,
+                            dl.Description,
+                            Members = dl.DistributionMembers
+                                .Where(dm => dm.PersonalInfo != null)
+                                .Select(dm => new
+                                {
+                                    dm.PersonalInfo.Id,
+                                    dm.PersonalInfo.FirstName,
+                                    dm.PersonalInfo.LastName,
+                                    dm.PersonalInfo.Email
+                                })
+                        }) ?? Enumerable.Empty<object>(),
+                    Contractors = job.JobContracts?
+                        .Where(jc => jc.Contractor?.PersonalInfo != null)
+                        .Select(jc => new
                         {
-                            p.ProctorType.Id,
-                            p.ProctorType.Type
-                        },
-                        Source = "Direct",
-                        LabTest = new
+                            jc.Contractor.Id,
+                            jc.Contractor.PersonalInfo.FirstName,
+                            jc.Contractor.PersonalInfo.LastName,
+                            jc.Contractor.PersonalInfo.Email
+                        }) ?? Enumerable.Empty<object>(),
+                    Reports = job.Reports?
+                        .Select(r => new
                         {
-                            p.LabTest.Id,
-                            p.LabTest.MaterialType,
-                            p.LabTest.ReceiveDate
-                        }
-                    }),
-                    ReusedProctors = job.ProctorAdditionalJobs.Select(paj => new
-                    {
-                        paj.Proctor.Id,
-                        paj.Proctor.ProctorID,
-                        paj.Proctor.MaxDensity,
-                        paj.Proctor.CorrectedDensity,
-                        paj.Proctor.OptimumMoistureContent,
-                        paj.Proctor.SpecificGravity,
-                        ProctorType = new
+                            r.Id,
+                            r.ReportNumber,
+                            r.StartDate,
+                            r.SubmitDate,
+                            r.DistributeDate
+                        }) ?? Enumerable.Empty<object>(),
+                    SitePlans = job.SitePlans?
+                        .Select(sp => new
                         {
-                            paj.Proctor.ProctorType.Id,
-                            paj.Proctor.ProctorType.Type
-                        },
-                        Source = "Reused"
-                    })
+                            sp.Id,
+                            sp.SitePlanUrl
+                        }) ?? Enumerable.Empty<object>(),
+                    DirectProctors = job.LabTests?
+                        .Where(lt => lt.Proctors != null)
+                        .SelectMany(lt => lt.Proctors)
+                        .Where(p => p.ProctorType != null)
+                        .Select(p => new
+                        {
+                            p.Id,
+                            p.ProctorID,
+                            p.MaxDensity,
+                            p.CorrectedDensity,
+                            p.OptimumMoistureContent,
+                            p.SpecificGravity,
+                            ProctorType = new
+                            {
+                                p.ProctorType.Id,
+                                p.ProctorType.Type
+                            },
+                            Source = "Direct",
+                            LabTest = new
+                            {
+                                p.LabTest.Id,
+                                p.LabTest.MaterialType,
+                                p.LabTest.ReceiveDate
+                            }
+                        }) ?? Enumerable.Empty<object>(),
+                    ReusedProctors = job.ProctorAdditionalJobs?
+                        .Where(paj => paj.Proctor?.ProctorType != null)
+                        .Select(paj => new
+                        {
+                            paj.Proctor.Id,
+                            paj.Proctor.ProctorID,
+                            paj.Proctor.MaxDensity,
+                            paj.Proctor.CorrectedDensity,
+                            paj.Proctor.OptimumMoistureContent,
+                            paj.Proctor.SpecificGravity,
+                            ProctorType = new
+                            {
+                                paj.Proctor.ProctorType.Id,
+                                paj.Proctor.ProctorType.Type
+                            },
+                            Source = "Reused"
+                        }) ?? Enumerable.Empty<object>()
                 };
 
                 return Ok(result);
@@ -240,7 +257,7 @@ namespace DensityReportingToolBackend.Controllers
         {
             try
             {
-                _logger.LogInformation("Creating new job for client: {ClientName}", job.ClientName);
+                _logger.LogInformation("Creating new job for client: {ClientName}", job.Client.Name);
                 
                 if (!ModelState.IsValid)
                 {
@@ -289,7 +306,7 @@ namespace DensityReportingToolBackend.Controllers
                 }
 
                 // Update properties
-                existingJob.ClientName = job.ClientName;
+                existingJob.ClientId = job.ClientId;
                 existingJob.ProjectName = job.ProjectName;
                 existingJob.SiteAddress = job.SiteAddress;
                 existingJob.StartDate = job.StartDate;
@@ -514,10 +531,10 @@ namespace DensityReportingToolBackend.Controllers
                         Employee = new
                         {
                             jpm.Employee.Id,
-                            jpm.Employee.FirstName,
-                            jpm.Employee.LastName,
-                            jpm.Employee.Email,
-                            jpm.Employee.PhoneNumber
+                            FirstName = jpm.Employee.PersonalInfo.FirstName,
+                            LastName = jpm.Employee.PersonalInfo.LastName,
+                            Email = jpm.Employee.PersonalInfo.Email,
+                            PhoneNumber = jpm.Employee.PersonalInfo.PhoneNumber
                         }
                     })
                     .ToListAsync();
@@ -832,7 +849,7 @@ namespace DensityReportingToolBackend.Controllers
                     .Select(j => new
                     {
                         j.Id,
-                        j.ClientName,
+                        ClientName = j.Client.Name,
                         j.ProjectName,
                         j.SiteAddress,
                         j.StartDate,

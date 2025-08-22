@@ -9,4 +9,8 @@ public class PersonalInfo
     public required string Email { get; set; }
     [System.ComponentModel.DataAnnotations.Phone(ErrorMessage = "Invalid phone number format")]
     public required string PhoneNumber { get; set; }
+    
+    // Navigation properties to distinguish between employee and contractor
+    public GeoPacificEmployee? Employee { get; set; }
+    public Contractor? Contractor { get; set; }
 }

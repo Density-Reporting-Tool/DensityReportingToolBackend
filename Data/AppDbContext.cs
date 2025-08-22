@@ -14,6 +14,7 @@ namespace DensityReportingToolBackend.Data
         public DbSet<Contractor> Contractors => Set<Contractor>();
 
         // Jobs
+        public DbSet<Client> Clients => Set<Client>();
         public DbSet<Job> Jobs => Set<Job>();
         public DbSet<JobContractor> JobContractors => Set<JobContractor>();
         public DbSet<JobNote> JobNotes => Set<JobNote>();
@@ -51,15 +52,35 @@ namespace DensityReportingToolBackend.Data
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<PersonalInfo>().ToTable("PersonalInfos");
             modelBuilder.Entity<GeoPacificEmployee>().ToTable("GeoPacificEmployees");
+            modelBuilder.Entity<Client>().ToTable("Clients");
+
+            // ---------- People / Employees ----------
+            modelBuilder.Entity<GeoPacificEmployee>()
+                .HasOne(e => e.PersonalInfo)
+                .WithOne(p => p.Employee)
+                .HasForeignKey<GeoPacificEmployee>(e => e.PersonalInfoId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // ---------- People / Contractors ----------
             modelBuilder.Entity<Contractor>()
-                .HasOne(c => c.Details)
-                .WithMany()
-                .HasForeignKey(c => c.DetailsId)
+                .HasOne(c => c.PersonalInfo)
+                .WithOne(p => p.Contractor)
+                .HasForeignKey<Contractor>(c => c.PersonalInfoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Contractor>()
+                .HasOne(c => c.Client)
+                .WithMany(cl => cl.Contractors)
+                .HasForeignKey(c => c.ClientId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // ---------- Jobs ----------
+            modelBuilder.Entity<Job>()
+                .HasOne(j => j.Client)
+                .WithMany(cl => cl.Jobs)
+                .HasForeignKey(j => j.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<JobContractor>()
                 .HasKey(jc => new { jc.JobId, jc.ContractorId });
 
