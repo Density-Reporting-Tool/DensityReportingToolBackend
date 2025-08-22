@@ -32,6 +32,12 @@ namespace DensityReportingToolBackend.Controllers
                     .Include(j => j.JobContracts)
                         .ThenInclude(jc => jc.Contractor)
                             .ThenInclude(c => c.Details)
+                    .Include(j => j.LabTests)
+                        .ThenInclude(lt => lt.Proctors)
+                            .ThenInclude(p => p.ProctorType)
+                    .Include(j => j.ProctorAdditionalJobs)
+                        .ThenInclude(paj => paj.Proctor)
+                            .ThenInclude(p => p.ProctorType)
                     .Select(j => new
                     {
                         j.Id,
@@ -60,6 +66,32 @@ namespace DensityReportingToolBackend.Controllers
                             jc.Contractor.Details.FirstName,
                             jc.Contractor.Details.LastName,
                             jc.Contractor.Details.Email
+                        }),
+                        DirectProctors = j.LabTests.SelectMany(lt => lt.Proctors).Select(p => new
+                        {
+                            p.Id,
+                            p.ProctorID,
+                            p.MaxDensity,
+                            p.OptimumMoistureContent,
+                            ProctorType = new
+                            {
+                                p.ProctorType.Id,
+                                p.ProctorType.Type
+                            },
+                            Source = "Direct" // Belongs directly to this job
+                        }),
+                        ReusedProctors = j.ProctorAdditionalJobs.Select(paj => new
+                        {
+                            paj.Proctor.Id,
+                            paj.Proctor.ProctorID,
+                            paj.Proctor.MaxDensity,
+                            paj.Proctor.OptimumMoistureContent,
+                            ProctorType = new
+                            {
+                                paj.Proctor.ProctorType.Id,
+                                paj.Proctor.ProctorType.Type
+                            },
+                            Source = "Reused" // From another job
                         })
                     })
                     .ToListAsync();
@@ -89,6 +121,12 @@ namespace DensityReportingToolBackend.Controllers
                     .Include(j => j.JobContracts)
                         .ThenInclude(jc => jc.Contractor)
                             .ThenInclude(c => c.Details)
+                    .Include(j => j.LabTests)
+                        .ThenInclude(lt => lt.Proctors)
+                            .ThenInclude(p => p.ProctorType)
+                    .Include(j => j.ProctorAdditionalJobs)
+                        .ThenInclude(paj => paj.Proctor)
+                            .ThenInclude(p => p.ProctorType)
                     .Include(j => j.Reports)
                     .Include(j => j.SitePlans)
                     .FirstOrDefaultAsync(j => j.Id == id);
@@ -147,6 +185,42 @@ namespace DensityReportingToolBackend.Controllers
                     {
                         sp.Id,
                         sp.SitePlanUrl
+                    }),
+                    DirectProctors = job.LabTests.SelectMany(lt => lt.Proctors).Select(p => new
+                    {
+                        p.Id,
+                        p.ProctorID,
+                        p.MaxDensity,
+                        p.CorrectedDensity,
+                        p.OptimumMoistureContent,
+                        p.SpecificGravity,
+                        ProctorType = new
+                        {
+                            p.ProctorType.Id,
+                            p.ProctorType.Type
+                        },
+                        Source = "Direct",
+                        LabTest = new
+                        {
+                            p.LabTest.Id,
+                            p.LabTest.MaterialType,
+                            p.LabTest.ReceiveDate
+                        }
+                    }),
+                    ReusedProctors = job.ProctorAdditionalJobs.Select(paj => new
+                    {
+                        paj.Proctor.Id,
+                        paj.Proctor.ProctorID,
+                        paj.Proctor.MaxDensity,
+                        paj.Proctor.CorrectedDensity,
+                        paj.Proctor.OptimumMoistureContent,
+                        paj.Proctor.SpecificGravity,
+                        ProctorType = new
+                        {
+                            paj.Proctor.ProctorType.Id,
+                            paj.Proctor.ProctorType.Type
+                        },
+                        Source = "Reused"
                     })
                 };
 
@@ -338,6 +412,96 @@ namespace DensityReportingToolBackend.Controllers
             }
         }
 
+        // GET: api/jobs/{id}/proctors
+        [HttpGet("{id}/proctors")]
+        public async Task<ActionResult<object>> GetJobProctors(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Retrieving proctors for job ID: {JobId}", id);
+                
+                // First check if the job exists
+                var jobExists = await _dbContext.Jobs.AnyAsync(j => j.Id == id);
+                if (!jobExists)
+                {
+                    _logger.LogWarning("Job with ID {JobId} not found", id);
+                    return NotFound($"Job with ID {id} not found");
+                }
+
+                // Get direct proctors (belonging to this job through LabTest)
+                var directProctors = await _dbContext.LabTests
+                    .Where(lt => lt.JobId == id)
+                    .SelectMany(lt => lt.Proctors)
+                    .Include(p => p.ProctorType)
+                    .Include(p => p.LabTest)
+                    .Select(p => new
+                    {
+                        p.Id,
+                        p.ProctorID,
+                        p.MaxDensity,
+                        p.CorrectedDensity,
+                        p.OptimumMoistureContent,
+                        p.SpecificGravity,
+                        ProctorType = new
+                        {
+                            p.ProctorType.Id,
+                            p.ProctorType.Type
+                        },
+                        Source = "Direct",
+                        LabTest = new
+                        {
+                            p.LabTest.Id,
+                            p.LabTest.MaterialType,
+                            p.LabTest.ReceiveDate
+                        }
+                    })
+                    .ToListAsync();
+
+                // Get reused proctors (from other jobs)
+                var reusedProctors = await _dbContext.ProctorAdditionalJobs
+                    .Where(paj => paj.JobId == id)
+                    .Include(paj => paj.Proctor)
+                        .ThenInclude(p => p.ProctorType)
+                    .Include(paj => paj.Proctor)
+                        .ThenInclude(p => p.LabTest)
+                    .Select(paj => new
+                    {
+                        paj.Proctor.Id,
+                        paj.Proctor.ProctorID,
+                        paj.Proctor.MaxDensity,
+                        paj.Proctor.CorrectedDensity,
+                        paj.Proctor.OptimumMoistureContent,
+                        paj.Proctor.SpecificGravity,
+                        ProctorType = new
+                        {
+                            paj.Proctor.ProctorType.Id,
+                            paj.Proctor.ProctorType.Type
+                        },
+                        Source = "Reused",
+                        OriginalJob = new
+                        {
+                            paj.Proctor.LabTest.JobId,
+                            MaterialType = paj.Proctor.LabTest.MaterialType
+                        }
+                    })
+                    .ToListAsync();
+
+                var result = new
+                {
+                    DirectProctors = directProctors,
+                    ReusedProctors = reusedProctors,
+                    TotalCount = directProctors.Count + reusedProctors.Count
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving proctors for job {JobId}", id);
+                return StatusCode(500, "Internal server error occurred while retrieving proctors");
+            }
+        }
+
         // GET: api/jobs/{id}/summary
         [HttpGet("{id}/summary")]
         public async Task<ActionResult<object>> GetJobSummary(int id)
@@ -360,7 +524,10 @@ namespace DensityReportingToolBackend.Controllers
                         DistributionListCount = j.DistributionLists.Count,
                         ContractorCount = j.JobContracts.Count,
                         SitePlanCount = j.SitePlans.Count,
-                        LabTestCount = j.LabTests.Count
+                        LabTestCount = j.LabTests.Count,
+                        DirectProctorCount = j.LabTests.SelectMany(lt => lt.Proctors).Count(),
+                        ReusedProctorCount = j.ProctorAdditionalJobs.Count,
+                        TotalProctorCount = j.LabTests.SelectMany(lt => lt.Proctors).Count() + j.ProctorAdditionalJobs.Count
                     })
                     .FirstOrDefaultAsync();
 

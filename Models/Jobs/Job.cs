@@ -20,4 +20,16 @@ public class Job
     public ICollection<ProctorAdditionalJob> ProctorAdditionalJobs { get; set; } = [];
     public ICollection<JobNote> JobNotes { get; set; } = [];
     public ICollection<DistributionList> DistributionLists { get; set; } = [];
+
+    // Convenience property to directly access proctors (not mapped to database)
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public ICollection<Proctor> Proctors => ProctorAdditionalJobs?.Select(paj => paj.Proctor).ToList() ?? [];
+
+    // Proctors that belong directly to this job (through LabTest)
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public ICollection<Proctor> DirectProctors => LabTests?.SelectMany(lt => lt.Proctors).ToList() ?? [];
+
+    // Proctors from other jobs that are being reused for this job
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public ICollection<Proctor> ReusedProctors => ProctorAdditionalJobs?.Select(paj => paj.Proctor).ToList() ?? [];
 }
