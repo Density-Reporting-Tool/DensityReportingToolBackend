@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DensityReportingToolBackend.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class TestController : ControllerBase
     {
         private readonly ILogger<TestController> _logger;
@@ -37,12 +37,6 @@ namespace DensityReportingToolBackend.Controllers
                 .ToListAsync();
             
             return employees;
-        }
-
-        [HttpGet("health")]
-        public IActionResult Health()
-        {
-            return Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
         }
     }
 }

@@ -162,49 +162,6 @@ namespace DensityReportingToolBackend.Migrations
                     b.ToTable("DensityTestComments");
                 });
 
-            modelBuilder.Entity("DensityReportingToolBackend.Models.DistributionList", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DistributionLists");
-                });
-
-            modelBuilder.Entity("DensityReportingToolBackend.Models.DistributionMember", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DistributionListId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PersonalInfoId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DistributionListId");
-
-                    b.HasIndex("PersonalInfoId");
-
-                    b.ToTable("DistributionMembers");
-                });
-
             modelBuilder.Entity("DensityReportingToolBackend.Models.Job", b =>
                 {
                     b.Property<int>("Id")
@@ -747,25 +704,6 @@ namespace DensityReportingToolBackend.Migrations
                     b.Navigation("DensityTest");
                 });
 
-            modelBuilder.Entity("DensityReportingToolBackend.Models.DistributionMember", b =>
-                {
-                    b.HasOne("DensityReportingToolBackend.Models.DistributionList", "DistributionList")
-                        .WithMany("DistributionMembers")
-                        .HasForeignKey("DistributionListId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DensityReportingToolBackend.Models.PersonalInfo", "PersonalInfo")
-                        .WithMany()
-                        .HasForeignKey("PersonalInfoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DistributionList");
-
-                    b.Navigation("PersonalInfo");
-                });
-
             modelBuilder.Entity("DensityReportingToolBackend.Models.Job", b =>
                 {
                     b.HasOne("DensityReportingToolBackend.Models.GeoPacificEmployee", "ProjectManager")
@@ -1027,11 +965,6 @@ namespace DensityReportingToolBackend.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("ShotPlacement");
-                });
-
-            modelBuilder.Entity("DensityReportingToolBackend.Models.DistributionList", b =>
-                {
-                    b.Navigation("DistributionMembers");
                 });
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.Job", b =>
