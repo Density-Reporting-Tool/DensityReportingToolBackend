@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DensityReportingToolBackend.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class TestController : ControllerBase
     {
         private readonly ILogger<TestController> _logger;
@@ -16,6 +16,16 @@ namespace DensityReportingToolBackend.Controllers
         {
             _logger = logger;
             _dbContext = dbContext;
+        }
+
+        [HttpGet("health")]
+        public IActionResult HealthCheck()
+        {
+            return Ok(new { 
+                status = "healthy", 
+                timestamp = DateTime.UtcNow,
+                message = "Backend is running successfully!"
+            });
         }
 
         [HttpGet("employees")]

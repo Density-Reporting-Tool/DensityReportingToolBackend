@@ -14,6 +14,17 @@ builder.Services.AddEndpointsApiExplorer();
 // Adds Swagger/OpenAPI generation, so you can view and test your API in /swagger
 builder.Services.AddSwaggerGen();
 
+// Add CORS support for local development
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocalFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 // get our connection string in appsettings.development.json
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -28,6 +39,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Use CORS before other middleware
+app.UseCors("AllowLocalFrontend");
 
 // Redirects HTTP requests to HTTPS automatically
 app.UseHttpsRedirection();
