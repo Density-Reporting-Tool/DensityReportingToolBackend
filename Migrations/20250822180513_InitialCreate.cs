@@ -13,6 +13,23 @@ namespace DensityReportingToolBackend.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "Jobs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ClientName = table.Column<string>(type: "text", nullable: false),
+                    ProjectName = table.Column<string>(type: "text", nullable: false),
+                    SiteAddress = table.Column<string>(type: "text", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Jobs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PersonalInfos",
                 columns: table => new
                 {
@@ -55,6 +72,69 @@ namespace DensityReportingToolBackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DistributionLists",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    JobId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DistributionLists", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DistributionLists_Jobs_JobId",
+                        column: x => x.JobId,
+                        principalTable: "Jobs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "LabTests",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    JobId = table.Column<int>(type: "integer", nullable: false),
+                    MaterialType = table.Column<string>(type: "text", nullable: true),
+                    ImportLocation = table.Column<string>(type: "text", nullable: true),
+                    ReceiveDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_LabTests", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_LabTests_Jobs_JobId",
+                        column: x => x.JobId,
+                        principalTable: "Jobs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SitePlans",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    JobId = table.Column<int>(type: "integer", nullable: false),
+                    SitePlanUrl = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SitePlans", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SitePlans_Jobs_JobId",
+                        column: x => x.JobId,
+                        principalTable: "Jobs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Contractors",
                 columns: table => new
                 {
@@ -68,6 +148,42 @@ namespace DensityReportingToolBackend.Migrations
                     table.ForeignKey(
                         name: "FK_Contractors_PersonalInfos_DetailsId",
                         column: x => x.DetailsId,
+                        principalTable: "PersonalInfos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "JobSiteContacts",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    JobId = table.Column<int>(type: "integer", nullable: false),
+                    PersonalInfoId = table.Column<int>(type: "integer", nullable: false),
+                    Area = table.Column<string>(type: "text", nullable: true),
+                    Company = table.Column<string>(type: "text", nullable: true),
+                    Role = table.Column<string>(type: "text", nullable: true),
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Notes = table.Column<string>(type: "text", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_JobSiteContacts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_JobSiteContacts_Jobs_JobId",
+                        column: x => x.JobId,
+                        principalTable: "Jobs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_JobSiteContacts_PersonalInfos_PersonalInfoId",
+                        column: x => x.PersonalInfoId,
                         principalTable: "PersonalInfos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -98,46 +214,49 @@ namespace DensityReportingToolBackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Comments",
+                name: "DistributionMembers",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    EmployeeId = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    Details = table.Column<string>(type: "text", nullable: false)
+                    DistributionListId = table.Column<int>(type: "integer", nullable: false),
+                    PersonalInfoId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Comments", x => x.Id);
+                    table.PrimaryKey("PK_DistributionMembers", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Comments_GeoPacificEmployees_EmployeeId",
-                        column: x => x.EmployeeId,
-                        principalTable: "GeoPacificEmployees",
+                        name: "FK_DistributionMembers_DistributionLists_DistributionListId",
+                        column: x => x.DistributionListId,
+                        principalTable: "DistributionLists",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DistributionMembers_PersonalInfos_PersonalInfoId",
+                        column: x => x.PersonalInfoId,
+                        principalTable: "PersonalInfos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Jobs",
+                name: "Sieves",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ProjectManagerId = table.Column<int>(type: "integer", nullable: false),
-                    ClientName = table.Column<string>(type: "text", nullable: false),
-                    ProjectName = table.Column<string>(type: "text", nullable: false),
-                    SiteAddress = table.Column<string>(type: "text", nullable: false),
-                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    LabTestId = table.Column<int>(type: "integer", nullable: false),
+                    TotalDryMassGrams = table.Column<double>(type: "double precision", nullable: true),
+                    MoistureContentBefore = table.Column<double>(type: "double precision", nullable: true),
+                    MoistureContentAfter = table.Column<double>(type: "double precision", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Jobs", x => x.Id);
+                    table.PrimaryKey("PK_Sieves", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Jobs_GeoPacificEmployees_ProjectManagerId",
-                        column: x => x.ProjectManagerId,
-                        principalTable: "GeoPacificEmployees",
+                        name: "FK_Sieves_LabTests_LabTestId",
+                        column: x => x.LabTestId,
+                        principalTable: "LabTests",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -167,47 +286,52 @@ namespace DensityReportingToolBackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "JobNotes",
+                name: "Comments",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CommentId = table.Column<int>(type: "integer", nullable: false),
-                    JobId = table.Column<int>(type: "integer", nullable: false)
+                    EmployeeId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Details = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_JobNotes", x => x.Id);
+                    table.PrimaryKey("PK_Comments", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_JobNotes_Comments_CommentId",
-                        column: x => x.CommentId,
-                        principalTable: "Comments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_JobNotes_Jobs_JobId",
-                        column: x => x.JobId,
-                        principalTable: "Jobs",
+                        name: "FK_Comments_GeoPacificEmployees_EmployeeId",
+                        column: x => x.EmployeeId,
+                        principalTable: "GeoPacificEmployees",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "LabTests",
+                name: "JobProjectManagers",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     JobId = table.Column<int>(type: "integer", nullable: false),
-                    MaterialType = table.Column<string>(type: "text", nullable: true),
-                    ImportLocation = table.Column<string>(type: "text", nullable: true),
-                    ReceiveDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    EmployeeId = table.Column<int>(type: "integer", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Notes = table.Column<string>(type: "text", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LabTests", x => x.Id);
+                    table.PrimaryKey("PK_JobProjectManagers", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_LabTests_Jobs_JobId",
+                        name: "FK_JobProjectManagers_GeoPacificEmployees_EmployeeId",
+                        column: x => x.EmployeeId,
+                        principalTable: "GeoPacificEmployees",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_JobProjectManagers_Jobs_JobId",
                         column: x => x.JobId,
                         principalTable: "Jobs",
                         principalColumn: "Id",
@@ -226,11 +350,18 @@ namespace DensityReportingToolBackend.Migrations
                     ReportNumber = table.Column<int>(type: "integer", nullable: false),
                     StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     SubmitDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DistributeDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    DistributeDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DistributionListId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Reports", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Reports_DistributionLists_DistributionListId",
+                        column: x => x.DistributionListId,
+                        principalTable: "DistributionLists",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Reports_GeoPacificEmployees_EmployeeId",
                         column: x => x.EmployeeId,
@@ -247,97 +378,6 @@ namespace DensityReportingToolBackend.Migrations
                         name: "FK_Reports_Jobs_JobId",
                         column: x => x.JobId,
                         principalTable: "Jobs",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SitePlans",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    JobId = table.Column<int>(type: "integer", nullable: false),
-                    SitePlanUrl = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SitePlans", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_SitePlans_Jobs_JobId",
-                        column: x => x.JobId,
-                        principalTable: "Jobs",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Sieves",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    LabTestId = table.Column<int>(type: "integer", nullable: false),
-                    TotalDryMassGrams = table.Column<double>(type: "double precision", nullable: true),
-                    MoistureContentBefore = table.Column<double>(type: "double precision", nullable: true),
-                    MoistureContentAfter = table.Column<double>(type: "double precision", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Sieves", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Sieves_LabTests_LabTestId",
-                        column: x => x.LabTestId,
-                        principalTable: "LabTests",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ReportMemos",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ReportId = table.Column<int>(type: "integer", nullable: false),
-                    Purpose = table.Column<string>(type: "text", nullable: true),
-                    CommentsAndObservations = table.Column<string>(type: "text", nullable: true),
-                    Conclusion = table.Column<string>(type: "text", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    UpdatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ReportMemos", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ReportMemos_Reports_ReportId",
-                        column: x => x.ReportId,
-                        principalTable: "Reports",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ReportPhotos",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ReportId = table.Column<int>(type: "integer", nullable: false),
-                    Code = table.Column<string>(type: "text", nullable: true),
-                    Url = table.Column<string>(type: "text", nullable: true),
-                    Description = table.Column<string>(type: "text", nullable: true),
-                    Latitude = table.Column<double>(type: "double precision", nullable: true),
-                    Longitude = table.Column<double>(type: "double precision", nullable: true),
-                    GpsAccuracyMeters = table.Column<double>(type: "double precision", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ReportPhotos", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ReportPhotos_Reports_ReportId",
-                        column: x => x.ReportId,
-                        principalTable: "Reports",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -403,27 +443,76 @@ namespace DensityReportingToolBackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "MemoComments",
+                name: "JobNotes",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     CommentId = table.Column<int>(type: "integer", nullable: false),
-                    MemoId = table.Column<int>(type: "integer", nullable: false)
+                    JobId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MemoComments", x => x.Id);
+                    table.PrimaryKey("PK_JobNotes", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MemoComments_Comments_CommentId",
+                        name: "FK_JobNotes_Comments_CommentId",
                         column: x => x.CommentId,
                         principalTable: "Comments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_MemoComments_ReportMemos_MemoId",
-                        column: x => x.MemoId,
-                        principalTable: "ReportMemos",
+                        name: "FK_JobNotes_Jobs_JobId",
+                        column: x => x.JobId,
+                        principalTable: "Jobs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ReportMemos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ReportId = table.Column<int>(type: "integer", nullable: false),
+                    Purpose = table.Column<string>(type: "text", nullable: true),
+                    CommentsAndObservations = table.Column<string>(type: "text", nullable: true),
+                    Conclusion = table.Column<string>(type: "text", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ReportMemos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ReportMemos_Reports_ReportId",
+                        column: x => x.ReportId,
+                        principalTable: "Reports",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ReportPhotos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ReportId = table.Column<int>(type: "integer", nullable: false),
+                    Code = table.Column<string>(type: "text", nullable: true),
+                    Url = table.Column<string>(type: "text", nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    Latitude = table.Column<double>(type: "double precision", nullable: true),
+                    Longitude = table.Column<double>(type: "double precision", nullable: true),
+                    GpsAccuracyMeters = table.Column<double>(type: "double precision", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ReportPhotos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ReportPhotos_Reports_ReportId",
+                        column: x => x.ReportId,
+                        principalTable: "Reports",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -444,10 +533,10 @@ namespace DensityReportingToolBackend.Migrations
                     CorrectedOversizePercentage = table.Column<float>(type: "real", nullable: true),
                     ProbeDepth = table.Column<int>(type: "integer", nullable: true),
                     ProbeDepthUnit = table.Column<int>(type: "integer", nullable: true),
-                    CompactionSpecification = table.Column<int>(type: "integer", nullable: true),
+                    CompactionSpecification = table.Column<double>(type: "double precision", nullable: true),
                     CompactionSpecificationUnit = table.Column<int>(type: "integer", nullable: true),
-                    DensityValue = table.Column<int>(type: "integer", nullable: true),
-                    MoistureValue = table.Column<int>(type: "integer", nullable: true),
+                    DensityValue = table.Column<double>(type: "double precision", nullable: true),
+                    MoistureValue = table.Column<double>(type: "double precision", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "timezone('utc', now())"),
                     LastEditDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -498,6 +587,32 @@ namespace DensityReportingToolBackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "MemoComments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CommentId = table.Column<int>(type: "integer", nullable: false),
+                    MemoId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MemoComments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MemoComments_Comments_CommentId",
+                        column: x => x.CommentId,
+                        principalTable: "Comments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MemoComments_ReportMemos_MemoId",
+                        column: x => x.MemoId,
+                        principalTable: "ReportMemos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DensityTestComments",
                 columns: table => new
                 {
@@ -530,7 +645,7 @@ namespace DensityReportingToolBackend.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SitePlanId = table.Column<int>(type: "integer", nullable: false),
-                    DensityTestId = table.Column<int>(type: "integer", nullable: false),
+                    DensityTestId = table.Column<int>(type: "integer", nullable: true),
                     XCoordinate = table.Column<double>(type: "double precision", nullable: false),
                     YCoordinate = table.Column<double>(type: "double precision", nullable: false)
                 },
@@ -541,8 +656,7 @@ namespace DensityReportingToolBackend.Migrations
                         name: "FK_ShotPlacements_DensityTests_DensityTestId",
                         column: x => x.DensityTestId,
                         principalTable: "DensityTests",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_ShotPlacements_SitePlans_SitePlanId",
                         column: x => x.SitePlanId,
@@ -582,6 +696,21 @@ namespace DensityReportingToolBackend.Migrations
                 column: "ReportId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DistributionLists_JobId",
+                table: "DistributionLists",
+                column: "JobId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DistributionMembers_DistributionListId",
+                table: "DistributionMembers",
+                column: "DistributionListId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DistributionMembers_PersonalInfoId",
+                table: "DistributionMembers",
+                column: "PersonalInfoId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_GeoPacificEmployees_RoleId",
                 table: "GeoPacificEmployees",
                 column: "RoleId");
@@ -602,9 +731,26 @@ namespace DensityReportingToolBackend.Migrations
                 column: "JobId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Jobs_ProjectManagerId",
-                table: "Jobs",
-                column: "ProjectManagerId");
+                name: "IX_JobProjectManagers_EmployeeId",
+                table: "JobProjectManagers",
+                column: "EmployeeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JobProjectManagers_JobId",
+                table: "JobProjectManagers",
+                column: "JobId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JobSiteContacts_JobId_IsPrimary_IsActive",
+                table: "JobSiteContacts",
+                columns: new[] { "JobId", "IsPrimary", "IsActive" },
+                unique: true,
+                filter: "\"IsPrimary\" = true AND \"IsActive\" = true");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JobSiteContacts_PersonalInfoId",
+                table: "JobSiteContacts",
+                column: "PersonalInfoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LabTests_JobId",
@@ -657,6 +803,11 @@ namespace DensityReportingToolBackend.Migrations
                 column: "ReportId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Reports_DistributionListId",
+                table: "Reports",
+                column: "DistributionListId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Reports_EmployeeId",
                 table: "Reports",
                 column: "EmployeeId");
@@ -675,7 +826,8 @@ namespace DensityReportingToolBackend.Migrations
                 name: "IX_ShotPlacements_DensityTestId",
                 table: "ShotPlacements",
                 column: "DensityTestId",
-                unique: true);
+                unique: true,
+                filter: "\"DensityTestId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ShotPlacements_SitePlanId",
@@ -705,10 +857,19 @@ namespace DensityReportingToolBackend.Migrations
                 name: "DensityTestComments");
 
             migrationBuilder.DropTable(
+                name: "DistributionMembers");
+
+            migrationBuilder.DropTable(
                 name: "JobContractors");
 
             migrationBuilder.DropTable(
                 name: "JobNotes");
+
+            migrationBuilder.DropTable(
+                name: "JobProjectManagers");
+
+            migrationBuilder.DropTable(
+                name: "JobSiteContacts");
 
             migrationBuilder.DropTable(
                 name: "MemoComments");
@@ -753,19 +914,22 @@ namespace DensityReportingToolBackend.Migrations
                 name: "Sieves");
 
             migrationBuilder.DropTable(
-                name: "LabTests");
-
-            migrationBuilder.DropTable(
-                name: "Jobs");
+                name: "DistributionLists");
 
             migrationBuilder.DropTable(
                 name: "GeoPacificEmployees");
+
+            migrationBuilder.DropTable(
+                name: "LabTests");
 
             migrationBuilder.DropTable(
                 name: "PersonalInfos");
 
             migrationBuilder.DropTable(
                 name: "Roles");
+
+            migrationBuilder.DropTable(
+                name: "Jobs");
         }
     }
 }

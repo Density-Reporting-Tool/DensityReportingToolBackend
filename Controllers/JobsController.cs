@@ -18,6 +18,40 @@ namespace DensityReportingToolBackend.Controllers
             _dbContext = dbContext;
         }
 
+        // GET: api/jobs/test
+        [HttpGet("test")]
+        public ActionResult<object> TestEndpoint()
+        {
+            return Ok(new { message = "JobsController is working!", timestamp = DateTime.UtcNow });
+        }
+
+        // GET: api/jobs/db-test
+        [HttpGet("db-test")]
+        public async Task<ActionResult<object>> TestDatabaseConnection()
+        {
+            try
+            {
+                // Test if we can connect to the database
+                var canConnect = await _dbContext.Database.CanConnectAsync();
+                var connectionString = _dbContext.Database.GetConnectionString();
+                
+                return Ok(new { 
+                    message = "Database connection test", 
+                    canConnect = canConnect,
+                    connectionString = connectionString?.Substring(0, Math.Min(50, connectionString?.Length ?? 0)) + "...",
+                    timestamp = DateTime.UtcNow 
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { 
+                    error = "Database connection failed", 
+                    message = ex.Message,
+                    timestamp = DateTime.UtcNow 
+                });
+            }
+        }
+
         // GET: api/jobs
         [HttpGet]
         public async Task<ActionResult<IEnumerable<object>>> GetJobs()
@@ -26,21 +60,8 @@ namespace DensityReportingToolBackend.Controllers
             {
                 _logger.LogInformation("Retrieving all jobs");
                 
+                // Start with a simple query to get basic job data
                 var jobs = await _dbContext.Jobs
-                    .Include(j => j.ProjectManagers)
-                        .ThenInclude(jpm => jpm.Employee)
-                    .Include(j => j.SiteContacts)
-                        .ThenInclude(jsc => jsc.PersonalInfo)
-                    .Include(j => j.DistributionLists)
-                    .Include(j => j.JobContracts)
-                        .ThenInclude(jc => jc.Contractor)
-                            .ThenInclude(c => c.Details)
-                    .Include(j => j.LabTests)
-                        .ThenInclude(lt => lt.Proctors)
-                            .ThenInclude(p => p.ProctorType)
-                    .Include(j => j.ProctorAdditionalJobs)
-                        .ThenInclude(paj => paj.Proctor)
-                            .ThenInclude(p => p.ProctorType)
                     .Select(j => new
                     {
                         j.Id,
@@ -48,75 +69,7 @@ namespace DensityReportingToolBackend.Controllers
                         j.ProjectName,
                         j.SiteAddress,
                         j.StartDate,
-                        j.EndDate,
-                        ProjectManagers = j.ProjectManagers
-                            .Where(pm => pm.IsActive && pm.EndDate == null)
-                            .Select(pm => new
-                            {
-                                pm.Employee.Id,
-                                pm.Employee.FirstName,
-                                pm.Employee.LastName,
-                                pm.Employee.Email,
-                                pm.Employee.PhoneNumber,
-                                pm.Notes,
-                                pm.StartDate
-                            }),
-                        SiteContacts = j.SiteContacts
-                            .Where(sc => sc.IsActive && sc.EndDate == null)
-                            .Select(sc => new
-                            {
-                                sc.PersonalInfo.Id,
-                                sc.PersonalInfo.FirstName,
-                                sc.PersonalInfo.LastName,
-                                sc.PersonalInfo.Email,
-                                sc.PersonalInfo.PhoneNumber,
-                                sc.Area,
-                                sc.Company,
-                                sc.Role,
-                                sc.IsPrimary,
-                                sc.Notes,
-                                sc.StartDate
-                            }),
-                        DistributionLists = j.DistributionLists.Select(dl => new
-                        {
-                            dl.Id,
-                            dl.Name,
-                            dl.Description,
-                            MemberCount = dl.DistributionMembers.Count
-                        }),
-                        Contractors = j.JobContracts.Select(jc => new
-                        {
-                            jc.Contractor.Id,
-                            jc.Contractor.Details.FirstName,
-                            jc.Contractor.Details.LastName,
-                            jc.Contractor.Details.Email
-                        }),
-                        DirectProctors = j.LabTests.SelectMany(lt => lt.Proctors).Select(p => new
-                        {
-                            p.Id,
-                            p.ProctorID,
-                            p.MaxDensity,
-                            p.OptimumMoistureContent,
-                            ProctorType = new
-                            {
-                                p.ProctorType.Id,
-                                p.ProctorType.Type
-                            },
-                            Source = "Direct" // Belongs directly to this job
-                        }),
-                        ReusedProctors = j.ProctorAdditionalJobs.Select(paj => new
-                        {
-                            paj.Proctor.Id,
-                            paj.Proctor.ProctorID,
-                            paj.Proctor.MaxDensity,
-                            paj.Proctor.OptimumMoistureContent,
-                            ProctorType = new
-                            {
-                                paj.Proctor.ProctorType.Id,
-                                paj.Proctor.ProctorType.Type
-                            },
-                            Source = "Reused" // From another job
-                        })
+                        j.EndDate
                     })
                     .ToListAsync();
 

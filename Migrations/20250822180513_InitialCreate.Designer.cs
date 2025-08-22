@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DensityReportingToolBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250814213321_InitialCreate")]
+    [Migration("20250822180513_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -76,8 +76,8 @@ namespace DensityReportingToolBackend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("CompactionSpecification")
-                        .HasColumnType("integer");
+                    b.Property<double?>("CompactionSpecification")
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("CompactionSpecificationUnit")
                         .HasColumnType("integer");
@@ -90,8 +90,8 @@ namespace DensityReportingToolBackend.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("timezone('utc', now())");
 
-                    b.Property<int?>("DensityValue")
-                        .HasColumnType("integer");
+                    b.Property<double?>("DensityValue")
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("ElevationReference")
                         .HasColumnType("integer");
@@ -108,8 +108,8 @@ namespace DensityReportingToolBackend.Migrations
                     b.Property<string>("Location")
                         .HasColumnType("text");
 
-                    b.Property<int?>("MoistureValue")
-                        .HasColumnType("integer");
+                    b.Property<double?>("MoistureValue")
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("ProbeDepth")
                         .HasColumnType("integer");
@@ -165,6 +165,54 @@ namespace DensityReportingToolBackend.Migrations
                     b.ToTable("DensityTestComments");
                 });
 
+            modelBuilder.Entity("DensityReportingToolBackend.Models.DistributionList", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<int>("JobId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId");
+
+                    b.ToTable("DistributionLists");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.DistributionMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DistributionListId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PersonalInfoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DistributionListId");
+
+                    b.HasIndex("PersonalInfoId");
+
+                    b.ToTable("DistributionMembers");
+                });
+
             modelBuilder.Entity("DensityReportingToolBackend.Models.Job", b =>
                 {
                     b.Property<int>("Id")
@@ -180,9 +228,6 @@ namespace DensityReportingToolBackend.Migrations
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("ProjectManagerId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("ProjectName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -195,8 +240,6 @@ namespace DensityReportingToolBackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProjectManagerId");
 
                     b.ToTable("Jobs");
                 });
@@ -237,6 +280,102 @@ namespace DensityReportingToolBackend.Migrations
                     b.HasIndex("JobId");
 
                     b.ToTable("JobNotes");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.JobProjectManager", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("JobId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("JobId");
+
+                    b.ToTable("JobProjectManagers");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.JobSiteContact", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Area")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Company")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("JobId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<int>("PersonalInfoId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Role")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonalInfoId");
+
+                    b.HasIndex("JobId", "IsPrimary", "IsActive")
+                        .IsUnique()
+                        .HasFilter("\"IsPrimary\" = true AND \"IsActive\" = true");
+
+                    b.ToTable("JobSiteContacts");
                 });
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.LabTest", b =>
@@ -414,6 +553,9 @@ namespace DensityReportingToolBackend.Migrations
                     b.Property<DateTime?>("DistributeDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("DistributionListId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("EmployeeId")
                         .HasColumnType("integer");
 
@@ -433,6 +575,8 @@ namespace DensityReportingToolBackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DistributionListId");
 
                     b.HasIndex("EmployeeId");
 
@@ -537,7 +681,7 @@ namespace DensityReportingToolBackend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("DensityTestId")
+                    b.Property<int?>("DensityTestId")
                         .HasColumnType("integer");
 
                     b.Property<int>("SitePlanId")
@@ -552,7 +696,8 @@ namespace DensityReportingToolBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DensityTestId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"DensityTestId\" IS NOT NULL");
 
                     b.HasIndex("SitePlanId");
 
@@ -707,15 +852,34 @@ namespace DensityReportingToolBackend.Migrations
                     b.Navigation("DensityTest");
                 });
 
-            modelBuilder.Entity("DensityReportingToolBackend.Models.Job", b =>
+            modelBuilder.Entity("DensityReportingToolBackend.Models.DistributionList", b =>
                 {
-                    b.HasOne("DensityReportingToolBackend.Models.GeoPacificEmployee", "ProjectManager")
-                        .WithMany()
-                        .HasForeignKey("ProjectManagerId")
+                    b.HasOne("DensityReportingToolBackend.Models.Job", "Job")
+                        .WithMany("DistributionLists")
+                        .HasForeignKey("JobId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ProjectManager");
+                    b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.DistributionMember", b =>
+                {
+                    b.HasOne("DensityReportingToolBackend.Models.DistributionList", "DistributionList")
+                        .WithMany("DistributionMembers")
+                        .HasForeignKey("DistributionListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DensityReportingToolBackend.Models.PersonalInfo", "PersonalInfo")
+                        .WithMany()
+                        .HasForeignKey("PersonalInfoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DistributionList");
+
+                    b.Navigation("PersonalInfo");
                 });
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.JobContractor", b =>
@@ -754,6 +918,44 @@ namespace DensityReportingToolBackend.Migrations
                     b.Navigation("Comment");
 
                     b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.JobProjectManager", b =>
+                {
+                    b.HasOne("DensityReportingToolBackend.Models.GeoPacificEmployee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DensityReportingToolBackend.Models.Job", "Job")
+                        .WithMany("ProjectManagers")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("DensityReportingToolBackend.Models.JobSiteContact", b =>
+                {
+                    b.HasOne("DensityReportingToolBackend.Models.Job", "Job")
+                        .WithMany("SiteContacts")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DensityReportingToolBackend.Models.PersonalInfo", "PersonalInfo")
+                        .WithMany()
+                        .HasForeignKey("PersonalInfoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+
+                    b.Navigation("PersonalInfo");
                 });
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.LabTest", b =>
@@ -833,6 +1035,11 @@ namespace DensityReportingToolBackend.Migrations
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.Report", b =>
                 {
+                    b.HasOne("DensityReportingToolBackend.Models.DistributionList", "DistributionList")
+                        .WithMany()
+                        .HasForeignKey("DistributionListId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("DensityReportingToolBackend.Models.GeoPacificEmployee", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeId")
@@ -850,6 +1057,8 @@ namespace DensityReportingToolBackend.Migrations
                         .HasForeignKey("ReviewerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("DistributionList");
 
                     b.Navigation("Employee");
 
@@ -884,9 +1093,7 @@ namespace DensityReportingToolBackend.Migrations
                 {
                     b.HasOne("DensityReportingToolBackend.Models.DensityTest", "DensityTest")
                         .WithOne("ShotPlacement")
-                        .HasForeignKey("DensityReportingToolBackend.Models.ShotPlacement", "DensityTestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("DensityReportingToolBackend.Models.ShotPlacement", "DensityTestId");
 
                     b.HasOne("DensityReportingToolBackend.Models.SitePlan", "SitePlan")
                         .WithMany("ShotPlacements")
@@ -970,8 +1177,15 @@ namespace DensityReportingToolBackend.Migrations
                     b.Navigation("ShotPlacement");
                 });
 
+            modelBuilder.Entity("DensityReportingToolBackend.Models.DistributionList", b =>
+                {
+                    b.Navigation("DistributionMembers");
+                });
+
             modelBuilder.Entity("DensityReportingToolBackend.Models.Job", b =>
                 {
+                    b.Navigation("DistributionLists");
+
                     b.Navigation("JobContracts");
 
                     b.Navigation("JobNotes");
@@ -980,7 +1194,11 @@ namespace DensityReportingToolBackend.Migrations
 
                     b.Navigation("ProctorAdditionalJobs");
 
+                    b.Navigation("ProjectManagers");
+
                     b.Navigation("Reports");
+
+                    b.Navigation("SiteContacts");
 
                     b.Navigation("SitePlans");
                 });

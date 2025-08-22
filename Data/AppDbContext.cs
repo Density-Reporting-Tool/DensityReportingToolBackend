@@ -234,10 +234,8 @@ namespace DensityReportingToolBackend.Data
                 .HasForeignKey(r => r.DistributionListId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Ensure the distribution list belongs to the same job as the report
-            modelBuilder.Entity<Report>()
-                .HasCheckConstraint("ck_report_distributionlist_same_job",
-                    "\"DistributionListId\" IS NULL OR EXISTS (SELECT 1 FROM \"DistributionLists\" dl WHERE dl.\"Id\" = \"DistributionListId\" AND dl.\"JobId\" = \"JobId\")");
+            // Note: Check constraint for distribution list validation removed due to PostgreSQL limitations
+            // This validation will be handled at the application level
         }
     }
 }
