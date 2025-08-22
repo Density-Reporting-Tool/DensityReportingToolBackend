@@ -23,6 +23,7 @@ public class Job
     public ICollection<JobNote> JobNotes { get; set; } = [];
     public ICollection<DistributionList> DistributionLists { get; set; } = [];
     public ICollection<JobProjectManager> ProjectManagers { get; set; } = [];
+    public ICollection<JobSiteContact> SiteContacts { get; set; } = [];
 
     // Computed properties for easy access to project managers
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
@@ -40,6 +41,27 @@ public class Job
     public ICollection<GeoPacificEmployee> AllProjectManagers => 
         ProjectManagers?
             .Select(pm => pm.Employee)
+            .ToList() ?? [];
+
+    // Computed properties for easy access to site contacts
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public ICollection<PersonalInfo> ActiveSiteContacts => 
+        SiteContacts?
+            .Where(sc => sc.IsActive && sc.EndDate == null)
+            .Select(sc => sc.PersonalInfo)
+            .ToList() ?? [];
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public PersonalInfo? PrimarySiteContact => 
+        SiteContacts?
+            .Where(sc => sc.IsPrimary && sc.IsActive && sc.EndDate == null)
+            .Select(sc => sc.PersonalInfo)
+            .FirstOrDefault();
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public ICollection<PersonalInfo> AllSiteContacts => 
+        SiteContacts?
+            .Select(sc => sc.PersonalInfo)
             .ToList() ?? [];
 
     // Convenience property to directly access proctors (not mapped to database)

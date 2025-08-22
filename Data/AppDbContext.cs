@@ -19,6 +19,7 @@ namespace DensityReportingToolBackend.Data
         public DbSet<JobNote> JobNotes => Set<JobNote>();
         public DbSet<SitePlan> SitePlans => Set<SitePlan>();
         public DbSet<JobProjectManager> JobProjectManagers => Set<JobProjectManager>();
+        public DbSet<JobSiteContact> JobSiteContacts => Set<JobSiteContact>();
         //Distribution List
         public DbSet<DistributionList> DistributionLists => Set<DistributionList>();
         public DbSet<DistributionMember> DistributionMembers => Set<DistributionMember>();
@@ -73,6 +74,24 @@ namespace DensityReportingToolBackend.Data
                 .WithMany()
                 .HasForeignKey(jpm => jpm.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<JobSiteContact>()
+                .HasOne(jsc => jsc.Job)
+                .WithMany(j => j.SiteContacts)
+                .HasForeignKey(jsc => jsc.JobId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<JobSiteContact>()
+                .HasOne(jsc => jsc.PersonalInfo)
+                .WithMany()
+                .HasForeignKey(jsc => jsc.PersonalInfoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Ensure only one active primary site contact per job at a time
+            modelBuilder.Entity<JobSiteContact>()
+                .HasIndex(jsc => new { jsc.JobId, jsc.IsPrimary, jsc.IsActive })
+                .HasFilter("\"IsPrimary\" = true AND \"IsActive\" = true")
+                .IsUnique();
 
             modelBuilder.Entity<JobNote>(b =>
             {

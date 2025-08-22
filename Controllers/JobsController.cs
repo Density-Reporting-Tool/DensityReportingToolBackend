@@ -29,6 +29,8 @@ namespace DensityReportingToolBackend.Controllers
                 var jobs = await _dbContext.Jobs
                     .Include(j => j.ProjectManagers)
                         .ThenInclude(jpm => jpm.Employee)
+                    .Include(j => j.SiteContacts)
+                        .ThenInclude(jsc => jsc.PersonalInfo)
                     .Include(j => j.DistributionLists)
                     .Include(j => j.JobContracts)
                         .ThenInclude(jc => jc.Contractor)
@@ -58,6 +60,22 @@ namespace DensityReportingToolBackend.Controllers
                                 pm.Employee.PhoneNumber,
                                 pm.Notes,
                                 pm.StartDate
+                            }),
+                        SiteContacts = j.SiteContacts
+                            .Where(sc => sc.IsActive && sc.EndDate == null)
+                            .Select(sc => new
+                            {
+                                sc.PersonalInfo.Id,
+                                sc.PersonalInfo.FirstName,
+                                sc.PersonalInfo.LastName,
+                                sc.PersonalInfo.Email,
+                                sc.PersonalInfo.PhoneNumber,
+                                sc.Area,
+                                sc.Company,
+                                sc.Role,
+                                sc.IsPrimary,
+                                sc.Notes,
+                                sc.StartDate
                             }),
                         DistributionLists = j.DistributionLists.Select(dl => new
                         {
@@ -122,6 +140,8 @@ namespace DensityReportingToolBackend.Controllers
                 var job = await _dbContext.Jobs
                     .Include(j => j.ProjectManagers)
                         .ThenInclude(jpm => jpm.Employee)
+                    .Include(j => j.SiteContacts)
+                        .ThenInclude(jsc => jsc.PersonalInfo)
                     .Include(j => j.DistributionLists)
                         .ThenInclude(dl => dl.DistributionMembers)
                             .ThenInclude(dm => dm.PersonalInfo)
@@ -164,6 +184,22 @@ namespace DensityReportingToolBackend.Controllers
                             pm.Employee.PhoneNumber,
                             pm.Notes,
                             pm.StartDate
+                        }),
+                    SiteContacts = job.SiteContacts
+                        .Where(sc => sc.IsActive && sc.EndDate == null)
+                        .Select(sc => new
+                        {
+                            sc.PersonalInfo.Id,
+                            sc.PersonalInfo.FirstName,
+                            sc.PersonalInfo.LastName,
+                            sc.PersonalInfo.Email,
+                            sc.PersonalInfo.PhoneNumber,
+                            sc.Area,
+                            sc.Company,
+                            sc.Role,
+                            sc.IsPrimary,
+                            sc.Notes,
+                            sc.StartDate
                         }),
                     DistributionLists = job.DistributionLists.Select(dl => new
                     {
@@ -640,6 +676,193 @@ namespace DensityReportingToolBackend.Controllers
             {
                 _logger.LogError(ex, "Error updating project manager {ProjectManagerId} for job {JobId}", projectManagerId, id);
                 return StatusCode(500, "Internal server error occurred while updating project manager");
+            }
+        }
+
+        // GET: api/jobs/{id}/site-contacts
+        [HttpGet("{id}/site-contacts")]
+        public async Task<ActionResult<object>> GetJobSiteContacts(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Retrieving site contacts for job ID: {JobId}", id);
+                
+                // First check if the job exists
+                var jobExists = await _dbContext.Jobs.AnyAsync(j => j.Id == id);
+                if (!jobExists)
+                {
+                    _logger.LogWarning("Job with ID {JobId} not found", id);
+                    return NotFound($"Job with ID {id} not found");
+                }
+
+                var siteContacts = await _dbContext.JobSiteContacts
+                    .Where(jsc => jsc.JobId == id)
+                    .Include(jsc => jsc.PersonalInfo)
+                    .OrderByDescending(jsc => jsc.StartDate)
+                    .Select(jsc => new
+                    {
+                        jsc.Id,
+                        jsc.Area,
+                        jsc.Company,
+                        jsc.Role,
+                        jsc.IsPrimary,
+                        jsc.StartDate,
+                        jsc.EndDate,
+                        jsc.IsActive,
+                        jsc.Notes,
+                        jsc.CreatedDate,
+                        jsc.LastModifiedDate,
+                        PersonalInfo = new
+                        {
+                            jsc.PersonalInfo.Id,
+                            jsc.PersonalInfo.FirstName,
+                            jsc.PersonalInfo.LastName,
+                            jsc.PersonalInfo.Email,
+                            jsc.PersonalInfo.PhoneNumber
+                        }
+                    })
+                    .ToListAsync();
+
+                var result = new
+                {
+                    PrimaryContact = siteContacts.FirstOrDefault(sc => sc.IsPrimary && sc.IsActive && sc.EndDate == null),
+                    ActiveContacts = siteContacts.Where(sc => sc.IsActive && sc.EndDate == null),
+                    ContactHistory = siteContacts,
+                    TotalCount = siteContacts.Count
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving site contacts for job {JobId}", id);
+                return StatusCode(500, "Internal server error occurred while retrieving site contacts");
+            }
+        }
+
+        // POST: api/jobs/{id}/site-contacts
+        [HttpPost("{id}/site-contacts")]
+        public async Task<ActionResult<JobSiteContact>> AddSiteContact(int id, [FromBody] JobSiteContact siteContact)
+        {
+            try
+            {
+                _logger.LogInformation("Adding site contact to job ID: {JobId}", id);
+                
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("Invalid model state for site contact addition");
+                    return BadRequest(ModelState);
+                }
+
+                // Check if the job exists
+                var job = await _dbContext.Jobs.FindAsync(id);
+                if (job == null)
+                {
+                    _logger.LogWarning("Job with ID {JobId} not found", id);
+                    return NotFound($"Job with ID {id} not found");
+                }
+
+                // Check if the personal info exists
+                var personalInfo = await _dbContext.PersonalInfos.FindAsync(siteContact.PersonalInfoId);
+                if (personalInfo == null)
+                {
+                    _logger.LogWarning("Personal info with ID {PersonalInfoId} not found", siteContact.PersonalInfoId);
+                    return BadRequest($"Personal info with ID {siteContact.PersonalInfoId} not found");
+                }
+
+                // Set the job ID
+                siteContact.JobId = id;
+                siteContact.CreatedDate = DateTime.UtcNow;
+
+                // If this is a primary site contact, deactivate any existing primary
+                if (siteContact.IsPrimary)
+                {
+                    var existingPrimary = await _dbContext.JobSiteContacts
+                        .Where(jsc => jsc.JobId == id && jsc.IsPrimary && jsc.IsActive)
+                        .FirstOrDefaultAsync();
+                    
+                    if (existingPrimary != null)
+                    {
+                        existingPrimary.IsPrimary = false;
+                        existingPrimary.LastModifiedDate = DateTime.UtcNow;
+                    }
+                }
+
+                _dbContext.JobSiteContacts.Add(siteContact);
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully added site contact {PersonalInfoId} to job {JobId}", 
+                    siteContact.PersonalInfoId, id);
+                return CreatedAtAction(nameof(GetJobSiteContacts), new { id }, siteContact);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding site contact to job {JobId}", id);
+                return StatusCode(500, "Internal server error occurred while adding site contact");
+            }
+        }
+
+        // PUT: api/jobs/{id}/site-contacts/{siteContactId}
+        [HttpPut("{id}/site-contacts/{siteContactId}")]
+        public async Task<IActionResult> UpdateSiteContact(int id, int siteContactId, [FromBody] JobSiteContact siteContact)
+        {
+            try
+            {
+                _logger.LogInformation("Updating site contact {SiteContactId} for job {JobId}", siteContactId, id);
+                
+                if (siteContactId != siteContact.Id)
+                {
+                    return BadRequest("ID mismatch");
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var existingSiteContact = await _dbContext.JobSiteContacts
+                    .FirstOrDefaultAsync(jsc => jsc.Id == siteContactId && jsc.JobId == id);
+                
+                if (existingSiteContact == null)
+                {
+                    return NotFound($"Site contact not found");
+                }
+
+                // If changing to primary, deactivate any existing primary
+                if (siteContact.IsPrimary && !existingSiteContact.IsPrimary)
+                {
+                    var existingPrimary = await _dbContext.JobSiteContacts
+                        .Where(jsc => jsc.JobId == id && jsc.IsPrimary && jsc.IsActive)
+                        .FirstOrDefaultAsync();
+                    
+                    if (existingPrimary != null)
+                    {
+                        existingPrimary.IsPrimary = false;
+                        existingPrimary.LastModifiedDate = DateTime.UtcNow;
+                    }
+                }
+
+                // Update properties
+                existingSiteContact.Area = siteContact.Area;
+                existingSiteContact.Company = siteContact.Company;
+                existingSiteContact.Role = siteContact.Role;
+                existingSiteContact.IsPrimary = siteContact.IsPrimary;
+                existingSiteContact.StartDate = siteContact.StartDate;
+                existingSiteContact.EndDate = siteContact.EndDate;
+                existingSiteContact.IsActive = siteContact.IsActive;
+                existingSiteContact.Notes = siteContact.Notes;
+                existingSiteContact.LastModifiedDate = DateTime.UtcNow;
+
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully updated site contact {SiteContactId} for job {JobId}", 
+                    siteContactId, id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating site contact {SiteContactId} for job {JobId}", siteContactId, id);
+                return StatusCode(500, "Internal server error occurred while updating site contact");
             }
         }
 
