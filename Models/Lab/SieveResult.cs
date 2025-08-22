@@ -35,6 +35,8 @@ public class SieveResult
 
     public SieveSize SieveSize { get; set; }
 
+    [System.ComponentModel.DataAnnotations.Range(0, double.MaxValue, ErrorMessage = "Grams retained must be non-negative")]
     public double GramsRetained { get; set; }
+    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "Order index must be non-negative")]
     public int OrderIndex { get; set; }
 }

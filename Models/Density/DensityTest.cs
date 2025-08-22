@@ -41,11 +41,13 @@ public class DensityTest
     public int? ProbeDepth { get; set; } //cm or inch
     public ProbeDepthUnit? ProbeDepthUnit { get; set; }
 
-    public int? CompactionSpecification { get; set; } // e.g 95 %
+    [System.ComponentModel.DataAnnotations.Range(0, 110, ErrorMessage = "Compaction specification must be between 0 and 110%")]
+    public double? CompactionSpecification { get; set; } // e.g 95 %
     public CompactionSpecificationUnit? CompactionSpecificationUnit { get; set; } // MPDD or SPDD
 
-    public int? DensityValue { get; set; }
-    public int? MoistureValue { get; set; }
+    public double? DensityValue { get; set; }
+    [System.ComponentModel.DataAnnotations.Range(0, 100, ErrorMessage = "Moisture value must be between 0 and 100%")]
+    public double? MoistureValue { get; set; }
 
     public ShotPlacement? ShotPlacement { get; set; }
 

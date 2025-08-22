@@ -18,4 +18,8 @@ public class Report
     public ICollection<ReportPhoto> Photos { get; set; } = [];
     public ICollection<ReportMemo> Memos { get; set; } = [];
     public ICollection<DensityTest> DensityTests { get; set; } = [];
+
+    // Optional reference to a specific distribution list from the job
+    public int? DistributionListId { get; set; }
+    public DistributionList? DistributionList { get; set; }
 }

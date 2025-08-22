@@ -18,6 +18,9 @@ namespace DensityReportingToolBackend.Data
         public DbSet<JobContractor> JobContractors => Set<JobContractor>();
         public DbSet<JobNote> JobNotes => Set<JobNote>();
         public DbSet<SitePlan> SitePlans => Set<SitePlan>();
+        //Distribution List
+        public DbSet<DistributionList> DistributionLists => Set<DistributionList>();
+        public DbSet<DistributionMember> DistributionMembers => Set<DistributionMember>();
 
         // Reports
         public DbSet<Report> Reports => Set<Report>();
@@ -98,20 +101,23 @@ namespace DensityReportingToolBackend.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // ---------- DensityTest ↔ ShotPlacement (strict 1:1) ----------
+            // ---------- DensityTest ↔ ShotPlacement (optional 1:1) ----------
             modelBuilder.Entity<DensityTest>()
                 .HasOne(d => d.ShotPlacement)
                 .WithOne(s => s.DensityTest)
                 .HasForeignKey<ShotPlacement>(s => s.DensityTestId)
-                .IsRequired();
+                .IsRequired(false);
 
             modelBuilder.Entity<ShotPlacement>()
                 .HasIndex(s => s.DensityTestId)
-                .IsUnique();
+                .IsUnique()
+                .HasFilter("\"DensityTestId\" IS NOT NULL");
 
             // Helpful indexes
             modelBuilder.Entity<DensityTest>().HasIndex(d => d.ReportId);
             modelBuilder.Entity<DensityTest>().HasIndex(d => d.ProctorId);
+            modelBuilder.Entity<DistributionList>().HasIndex(dl => dl.JobId);
+            modelBuilder.Entity<Report>().HasIndex(r => r.DistributionListId);
 
             // PostgreSQL check constraints (property names match your model)
             modelBuilder.Entity<DensityTest>().ToTable(t =>
@@ -168,6 +174,38 @@ namespace DensityReportingToolBackend.Data
                 .HasOne(pj => pj.Job)
                 .WithMany(j => j.ProctorAdditionalJobs)
                 .HasForeignKey(pj => pj.JobId);
+
+            // ---------- Distribution Lists ----------
+            modelBuilder.Entity<DistributionMember>()
+                .HasOne(dm => dm.DistributionList)
+                .WithMany(dl => dl.DistributionMembers)
+                .HasForeignKey(dm => dm.DistributionListId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DistributionMember>()
+                .HasOne(dm => dm.PersonalInfo)
+                .WithMany()
+                .HasForeignKey(dm => dm.PersonalInfoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---------- Jobs and Distribution Lists ----------
+            modelBuilder.Entity<DistributionList>()
+                .HasOne(dl => dl.Job)
+                .WithMany(j => j.DistributionLists)
+                .HasForeignKey(dl => dl.JobId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ---------- Reports and Distribution Lists ----------
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.DistributionList)
+                .WithMany()
+                .HasForeignKey(r => r.DistributionListId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Ensure the distribution list belongs to the same job as the report
+            modelBuilder.Entity<Report>()
+                .HasCheckConstraint("ck_report_distributionlist_same_job",
+                    "\"DistributionListId\" IS NULL OR EXISTS (SELECT 1 FROM \"DistributionLists\" dl WHERE dl.\"Id\" = \"DistributionListId\" AND dl.\"JobId\" = \"JobId\")");
         }
     }
 }

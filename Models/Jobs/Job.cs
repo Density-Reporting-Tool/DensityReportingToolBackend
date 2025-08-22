@@ -19,4 +19,5 @@ public class Job
     public ICollection<LabTest> LabTests { get; set; } = [];
     public ICollection<ProctorAdditionalJob> ProctorAdditionalJobs { get; set; } = [];
     public ICollection<JobNote> JobNotes { get; set; } = [];
+    public ICollection<DistributionList> DistributionLists { get; set; } = [];
 }
