@@ -94,4 +94,71 @@ namespace DensityReportingToolBackend.Controllers
             return people;
         }
     }
+
+    // Add a separate controller for /api level endpoints
+    [ApiController]
+    [Route("api")]
+    public class ApiController : ControllerBase
+    {
+        [HttpGet("health")]
+        public IActionResult HealthCheck()
+        {
+            return Ok(new { 
+                status = "healthy", 
+                timestamp = DateTime.UtcNow,
+                message = "Backend is running successfully!"
+            });
+        }
+    }
+
+    // Add a separate controller for root-level endpoints
+    [ApiController]
+    [Route("")]
+    public class RootController : ControllerBase
+    {
+        [HttpGet("health")]
+        public IActionResult HealthCheck()
+        {
+            return Ok(new { 
+                status = "healthy", 
+                timestamp = DateTime.UtcNow,
+                message = "Backend is running successfully!"
+            });
+        }
+
+        [HttpGet("")]
+        public IActionResult Root()
+        {
+            return Ok(new { 
+                message = "Density Reporting Tool Backend API",
+                timestamp = DateTime.UtcNow,
+                endpoints = new[] {
+                    "/health",
+                    "/api/test/health",
+                    "/api/test/employees",
+                    "/api/test/contractors",
+                    "/api/test/people"
+                }
+            });
+        }
+
+        [HttpGet("home")]
+        public IActionResult Home()
+        {
+            return Ok(new { 
+                message = "Welcome to Density Reporting Tool Backend",
+                timestamp = DateTime.UtcNow
+            });
+        }
+
+        [HttpGet("status")]
+        public IActionResult Status()
+        {
+            return Ok(new { 
+                status = "running", 
+                timestamp = DateTime.UtcNow,
+                environment = "Development"
+            });
+        }
+    }
 }

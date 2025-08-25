@@ -42,8 +42,11 @@ if (app.Environment.IsDevelopment())
 // Use CORS before other middleware
 app.UseCors("AllowLocalFrontend");
 
-// Redirects HTTP requests to HTTPS automatically
-app.UseHttpsRedirection();
+// Redirects HTTP requests to HTTPS automatically (disabled in development)
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthorization();
 
