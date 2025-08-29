@@ -14,8 +14,8 @@ services:
       - db
     networks:
       - app-network
-    volumes:
-      - .:/app/src:ro
+    # volumes:
+    #   - .:/app/src:ro
 
   frontend:
     build:
@@ -28,17 +28,17 @@ services:
     networks:
       - app-network
 
-  db:
-    image: postgres:15
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB:-densityreporting}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
+  # db:
+  #   image: postgres:15
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - POSTGRES_DB=${POSTGRES_DB:-densityreporting}
+  #     - POSTGRES_USER=${POSTGRES_USER:-postgres}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
       - app-network
 
 volumes:
