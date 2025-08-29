@@ -1,4 +1,4 @@
-version: '3.8'
+# version: '3.8'  # Obsolete in newer Docker Compose versions
 
 services:
   backend:
@@ -10,8 +10,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-    depends_on:
-      - db
+    # depends_on:
+    #   - db
     networks:
       - app-network
     # volumes:
@@ -41,8 +41,8 @@ services:
   #   networks:
       # - app-network
 
-volumes:
-  postgres_data:
+# volumes:
+#   postgres_data:
 
 networks:
   app-network:
