@@ -27,5 +27,32 @@ Running the Server:
 run 'dotnet run'
 
 
-Test Job Creation:
-/test_job_creation.sh
+## 🧪 **Testing**
+
+### **Quick Test (Recommended):**
+```bash
+./tests/quick_test.sh
+```
+
+### **Full Test Suite:**
+```bash
+./tests/run_all_tests.sh
+```
+
+### **Individual Tests:**
+```bash
+# Quick test
+./tests/quick_test.sh
+
+# Full test
+./tests/test_job_creation.sh
+
+# PowerShell (Windows/Mac)
+./tests/test_job_creation.ps1
+```
+
+### **Test Features:**
+- ✅ Random job numbers (15000-25000)
+- ✅ Job creation and retrieval
+- ✅ Database persistence verification
+- ✅ JSON response formatting

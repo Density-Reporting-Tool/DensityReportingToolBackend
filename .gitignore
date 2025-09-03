@@ -26,6 +26,10 @@ publish/
 appsettings.Development.json
 secrets.json
 
+# Test files (keep test scripts but ignore test results)
+tests/results/
+tests/*.log
+
 # Misc
 *.dbmdl
 *.dotCover
