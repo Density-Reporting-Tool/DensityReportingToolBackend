@@ -17,7 +17,7 @@ else
     exit 1
 fi
 
-git adecho ""
+echo ""
 echo "🚀 Running Quick Test..."
 echo "------------------------"
 cd "$SCRIPT_DIR" && ./quick_test.sh
