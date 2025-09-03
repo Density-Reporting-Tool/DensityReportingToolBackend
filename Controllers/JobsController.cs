@@ -57,7 +57,7 @@ namespace DensityReportingToolBackend.Controllers
                 {
                     Id = job.Id,
                     JobNumber = job.JobNumber,
-                    ClientName = job.Client.Name,
+                    ClientName = job.Client?.Name ?? "Unknown Client",
                     Project = new
                     {
                     job.ProjectName,
