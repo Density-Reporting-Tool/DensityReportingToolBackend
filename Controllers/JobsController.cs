@@ -39,6 +39,7 @@ namespace DensityReportingToolBackend.Controllers
                     .Include(j => j.DistributionLists)
                         .ThenInclude(dl => dl.DistributionMembers)
                             .ThenInclude(dm => dm.PersonalInfo)
+                    .Include(j => j.Reports)
                     .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
 
                 if (job == null)
@@ -104,6 +105,15 @@ namespace DensityReportingToolBackend.Controllers
                                     LastName = dm.PersonalInfo.LastName,
                                     Email = dm.PersonalInfo.Email
                                 }) ?? Enumerable.Empty<object>()
+                        }) ?? Enumerable.Empty<object>(),
+                    Reports = job.Reports?
+                        .Select(r => new
+                        {
+                            r.Id,
+                            r.ReportNumber,
+                            r.StartDate,
+                            r.SubmitDate,
+                            r.DistributeDate
                         }) ?? Enumerable.Empty<object>()
                 };
 
