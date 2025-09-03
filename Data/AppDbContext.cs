@@ -11,12 +11,9 @@ namespace DensityReportingToolBackend.Data
         public DbSet<PersonalInfo> PersonalInfos => Set<PersonalInfo>();
         public DbSet<GeoPacificEmployee> GeoPacificEmployees => Set<GeoPacificEmployee>();
         public DbSet<Role> Roles => Set<Role>();
-        public DbSet<Contractor> Contractors => Set<Contractor>();
 
         // Jobs
-        public DbSet<Client> Clients => Set<Client>();
         public DbSet<Job> Jobs => Set<Job>();
-        public DbSet<JobContractor> JobContractors => Set<JobContractor>();
         public DbSet<JobNote> JobNotes => Set<JobNote>();
         public DbSet<SitePlan> SitePlans => Set<SitePlan>();
         public DbSet<JobProjectManager> JobProjectManagers => Set<JobProjectManager>();
@@ -52,7 +49,6 @@ namespace DensityReportingToolBackend.Data
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<PersonalInfo>().ToTable("PersonalInfos");
             modelBuilder.Entity<GeoPacificEmployee>().ToTable("GeoPacificEmployees");
-            modelBuilder.Entity<Client>().ToTable("Clients");
 
             // ---------- People / Employees ----------
             modelBuilder.Entity<GeoPacificEmployee>()
@@ -61,28 +57,7 @@ namespace DensityReportingToolBackend.Data
                 .HasForeignKey<GeoPacificEmployee>(e => e.PersonalInfoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ---------- People / Contractors ----------
-            modelBuilder.Entity<Contractor>()
-                .HasOne(c => c.PersonalInfo)
-                .WithOne(p => p.Contractor)
-                .HasForeignKey<Contractor>(c => c.PersonalInfoId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Contractor>()
-                .HasOne(c => c.Client)
-                .WithMany(cl => cl.Contractors)
-                .HasForeignKey(c => c.ClientId)
-                .OnDelete(DeleteBehavior.SetNull);
-
             // ---------- Jobs ----------
-            modelBuilder.Entity<Job>()
-                .HasOne(j => j.Client)
-                .WithMany(cl => cl.Jobs)
-                .HasForeignKey(j => j.ClientId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<JobContractor>()
-                .HasKey(jc => new { jc.JobId, jc.ContractorId });
 
             modelBuilder.Entity<JobProjectManager>()
                 .HasOne(jpm => jpm.Job)

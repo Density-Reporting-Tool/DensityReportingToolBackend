@@ -7,9 +7,8 @@ public class Job
     // Job number - can be numeric (e.g., "25482") or alphanumeric (e.g., "15827-A")
     public required string JobNumber { get; set; }
     
-    // Client relationship
-    public int ClientId { get; set; }
-    public Client Client { get; set; } = null!;
+    // Client name as a simple string
+    public required string ClientName { get; set; }
     
     public required string ProjectName { get; set; }
     public required string SiteAddress { get; set; }
@@ -17,12 +16,12 @@ public class Job
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
 
-    public ICollection<JobContractor> JobContracts { get; set; } = [];
+
     public ICollection<Report> Reports { get; set; } = [];
     public ICollection<SitePlan> SitePlans { get; set; } = [];
     public ICollection<LabTest> LabTests { get; set; } = [];
     public ICollection<ProctorAdditionalJob> ProctorAdditionalJobs { get; set; } = [];
-    public ICollection<JobNote> JobNotes { get; set; } = [];
+    public ICollection<JobNotes> JobNotes { get; set; } = [];
     public ICollection<DistributionList> DistributionLists { get; set; } = [];
     public ICollection<JobProjectManager> ProjectManagers { get; set; } = [];
     public ICollection<JobSiteContact> SiteContacts { get; set; } = [];

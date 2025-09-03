@@ -13,5 +13,4 @@ public class PersonalInfo
     
     // Navigation properties to distinguish between employee and contractor
     public GeoPacificEmployee? Employee { get; set; }
-    public Contractor? Contractor { get; set; }
 }
