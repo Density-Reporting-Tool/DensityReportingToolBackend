@@ -36,6 +36,9 @@ namespace DensityReportingToolBackend.Controllers
                         .ThenInclude(jpm => jpm.PersonalInfo)
                     .Include(j => j.SiteContacts)
                         .ThenInclude(jsc => jsc.PersonalInfo)
+                    .Include(j => j.DistributionLists)
+                        .ThenInclude(dl => dl.DistributionMembers)
+                            .ThenInclude(dm => dm.PersonalInfo)
                     .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
 
                 if (job == null)
@@ -47,7 +50,7 @@ namespace DensityReportingToolBackend.Controllers
                     });
                 }
 
-                // Return clean job information
+                // Return job information
                 var result = new
                 {
                     Id = job.Id,
@@ -86,6 +89,21 @@ namespace DensityReportingToolBackend.Controllers
                             sc.Role,
                             sc.IsPrimary,
                             sc.Notes
+                        }) ?? Enumerable.Empty<object>(),
+                    DistributionLists = job.DistributionLists?
+                        .Select(dl => new
+                        {
+                            dl.Id,
+                            dl.Name,
+                            dl.Description,
+                            Members = dl.DistributionMembers?
+                                .Select(dm => new
+                                {
+                                    dm.PersonalInfo.Id,
+                                    FirstName = dm.PersonalInfo.FirstName,
+                                    LastName = dm.PersonalInfo.LastName,
+                                    Email = dm.PersonalInfo.Email
+                                }) ?? Enumerable.Empty<object>()
                         }) ?? Enumerable.Empty<object>()
                 };
 
