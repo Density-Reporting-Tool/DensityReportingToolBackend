@@ -52,19 +52,12 @@ namespace DensityReportingToolBackend.Controllers
                 {
                     Id = job.Id,
                     JobNumber = job.JobNumber,
-                    Client = new
+                    ClientName = job.Client.Name,
+                    Project = new
                     {
-                        job.Client.Id,
-                        job.Client.Name,
-                        job.Client.Address,
-                        job.Client.PhoneNumber,
-                        job.Client.Email
-                    },
-                    JobDetails = new
-                    {
-                    job.ProjectName,
-                    job.SiteAddress,
-                    job.StartDate,
+                        job.ProjectName,
+                        job.SiteAddress,
+                        job.StartDate,
                         job.EndDate
                     },
                     ProjectManagers = job.ProjectManagers?
