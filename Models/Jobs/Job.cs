@@ -21,7 +21,7 @@ public class Job
     public ICollection<SitePlan> SitePlans { get; set; } = [];
     public ICollection<LabTest> LabTests { get; set; } = [];
     public ICollection<ProctorAdditionalJob> ProctorAdditionalJobs { get; set; } = [];
-    public ICollection<JobNotes> JobNotes { get; set; } = [];
+    public ICollection<JobNote> JobNotes { get; set; } = [];
     public ICollection<DistributionList> DistributionLists { get; set; } = [];
     public ICollection<JobProjectManager> ProjectManagers { get; set; } = [];
     public ICollection<JobSiteContact> SiteContacts { get; set; } = [];

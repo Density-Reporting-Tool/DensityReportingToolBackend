@@ -62,49 +62,7 @@ namespace DensityReportingToolBackend.Controllers
             }
         }
 
-        // Create a new contractor
-        [HttpPost("contractors")]
-        public async Task<ActionResult<Contractor>> CreateContractor([FromBody] CreateContractorRequest request)
-        {
-            try
-            {
-                // Create PersonalInfo first
-                var personalInfo = new PersonalInfo
-                {
-                    FirstName = request.FirstName,
-                    LastName = request.LastName,
-                    Email = request.Email,
-                    PhoneNumber = request.PhoneNumber
-                };
 
-                _dbContext.PersonalInfos.Add(personalInfo);
-                await _dbContext.SaveChangesAsync();
-
-                // Create Contractor
-                var contractor = new Contractor
-                {
-                    PersonalInfoId = personalInfo.Id,
-                    CompanyName = request.CompanyName,
-                    ClientId = request.ClientId // Optional: link to existing client
-                };
-
-                _dbContext.Contractors.Add(contractor);
-                await _dbContext.SaveChangesAsync();
-
-                // Return the created contractor with all related data
-                var result = await _dbContext.Contractors
-                    .Include(c => c.PersonalInfo)
-                    .Include(c => c.Client)
-                    .FirstOrDefaultAsync(c => c.Id == contractor.Id);
-
-                return CreatedAtAction(nameof(GetContractor), new { id = contractor.Id }, result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating contractor");
-                return StatusCode(500, "Internal server error");
-            }
-        }
 
         // Get a specific employee
         [HttpGet("employees/{id}")]
@@ -131,30 +89,7 @@ namespace DensityReportingToolBackend.Controllers
                 };
         }
 
-        // Get a specific contractor
-        [HttpGet("contractors/{id}")]
-        public async Task<ActionResult<object>> GetContractor(int id)
-        {
-            var contractor = await _dbContext.Contractors
-                .Include(c => c.PersonalInfo)
-                .Include(c => c.Client)
-                .FirstOrDefaultAsync(c => c.Id == id);
 
-            if (contractor == null)
-                return NotFound();
-
-                            return new
-                {
-                    contractor.Id,
-                    contractor.PersonalInfo.FirstName,
-                    contractor.PersonalInfo.LastName,
-                    contractor.PersonalInfo.Email,
-                    contractor.PersonalInfo.PhoneNumber,
-                    contractor.CompanyName,
-                    ClientName = contractor.Client != null ? contractor.Client.Name : null,
-                    PersonType = "Contractor"
-                };
-        }
 
         // Get all people with their type
         [HttpGet]
@@ -163,8 +98,6 @@ namespace DensityReportingToolBackend.Controllers
             var people = await _dbContext.PersonalInfos
                 .Include(p => p.Employee)
                 .ThenInclude(e => e.Role)
-                .Include(p => p.Contractor)
-                .ThenInclude(c => c.Client)
                 .Select(p => new
                 {
                     p.Id,
@@ -172,11 +105,9 @@ namespace DensityReportingToolBackend.Controllers
                     p.LastName,
                     p.Email,
                     p.PhoneNumber,
-                    PersonType = p.Employee != null ? "GeoPacific Employee" : 
-                                p.Contractor != null ? "Contractor" : "Unknown",
-                    CompanyName = p.Contractor != null ? p.Contractor.CompanyName : null,
-                    Role = p.Employee != null && p.Employee.Role != null ? p.Employee.Role.RoleTitle : null,
-                    ClientName = p.Contractor != null && p.Contractor.Client != null ? p.Contractor.Client.Name : null
+                    p.Company,
+                    PersonType = p.Employee != null ? "GeoPacific Employee" : "Contact",
+                    Role = p.Employee != null && p.Employee.Role != null ? p.Employee.Role.RoleTitle : null
                 })
                 .ToListAsync();
 
@@ -195,13 +126,5 @@ namespace DensityReportingToolBackend.Controllers
         public required string Password { get; set; }
     }
 
-    public class CreateContractorRequest
-    {
-        public required string FirstName { get; set; }
-        public required string LastName { get; set; }
-        public required string Email { get; set; }
-        public required string PhoneNumber { get; set; }
-        public required string CompanyName { get; set; }
-        public int? ClientId { get; set; } // Optional: link to existing client
-    }
+
 }
