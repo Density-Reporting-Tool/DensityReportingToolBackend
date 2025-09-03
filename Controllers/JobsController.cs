@@ -40,6 +40,7 @@ namespace DensityReportingToolBackend.Controllers
                         .ThenInclude(dl => dl.DistributionMembers)
                             .ThenInclude(dm => dm.PersonalInfo)
                     .Include(j => j.Reports)
+                    .Include(j => j.JobNotes)
                     .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
 
                 if (job == null)
@@ -59,9 +60,9 @@ namespace DensityReportingToolBackend.Controllers
                     ClientName = job.Client.Name,
                     Project = new
                     {
-                        job.ProjectName,
-                        job.SiteAddress,
-                        job.StartDate,
+                    job.ProjectName,
+                    job.SiteAddress,
+                    job.StartDate,
                         job.EndDate
                     },
                     ProjectManagers = job.ProjectManagers?
@@ -114,6 +115,13 @@ namespace DensityReportingToolBackend.Controllers
                             r.StartDate,
                             r.SubmitDate,
                             r.DistributeDate
+                        }) ?? Enumerable.Empty<object>(),
+                    JobNotes = job.JobNotes?
+                        .Select(n => new
+                        {
+                            n.Id,
+                            n.Note,
+                            n.CreatedDate
                         }) ?? Enumerable.Empty<object>()
                 };
 
