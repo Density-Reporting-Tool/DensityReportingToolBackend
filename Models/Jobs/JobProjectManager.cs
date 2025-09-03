@@ -7,8 +7,8 @@ public class JobProjectManager
     public int JobId { get; set; }
     public Job Job { get; set; } = null!;
     
-    public int EmployeeId { get; set; }
-    public GeoPacificEmployee Employee { get; set; } = null!;
+    public int PersonalInfoId { get; set; }
+    public PersonalInfo PersonalInfo { get; set; } = null!;
     
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }  // Null means currently active

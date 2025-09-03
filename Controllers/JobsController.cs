@@ -29,12 +29,11 @@ namespace DensityReportingToolBackend.Controllers
             try
             {
                 _logger.LogInformation("Retrieving job with number: {JobNumber}", jobNumber);
-
+                
                 var job = await _dbContext.Jobs
                     .Include(j => j.Client)
                     .Include(j => j.ProjectManagers)
-                        .ThenInclude(jpm => jpm.Employee)
-                            .ThenInclude(e => e.PersonalInfo)
+                        .ThenInclude(jpm => jpm.PersonalInfo)
                     .Include(j => j.SiteContacts)
                         .ThenInclude(jsc => jsc.PersonalInfo)
                     .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
@@ -61,22 +60,22 @@ namespace DensityReportingToolBackend.Controllers
                         job.Client.PhoneNumber,
                         job.Client.Email
                     },
-                    Project = new
+                    JobDetails = new
                     {
-                        job.ProjectName,
-                        job.SiteAddress,
-                        job.StartDate,
+                    job.ProjectName,
+                    job.SiteAddress,
+                    job.StartDate,
                         job.EndDate
                     },
                     ProjectManagers = job.ProjectManagers?
                         .Where(pm => pm.IsActive && pm.EndDate == null)
                         .Select(pm => new
                         {
-                            pm.Employee.Id,
-                            FirstName = pm.Employee.PersonalInfo.FirstName,
-                            LastName = pm.Employee.PersonalInfo.LastName,
-                            Email = pm.Employee.PersonalInfo.Email,
-                            PhoneNumber = pm.Employee.PersonalInfo.PhoneNumber,
+                            pm.PersonalInfo.Id,
+                            FirstName = pm.PersonalInfo.FirstName,
+                            LastName = pm.PersonalInfo.LastName,
+                            Email = pm.PersonalInfo.Email,
+                            PhoneNumber = pm.PersonalInfo.PhoneNumber,
                             pm.Notes,
                             pm.StartDate
                         }) ?? Enumerable.Empty<object>(),

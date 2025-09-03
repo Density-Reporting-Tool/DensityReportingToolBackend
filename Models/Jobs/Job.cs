@@ -29,46 +29,35 @@ public class Job
 
     // Computed properties for easy access to project managers
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public ICollection<GeoPacificEmployee> ActiveProjectManagers => 
+    public ICollection<PersonalInfo> ActiveProjectManagers => 
         ProjectManagers?
             .Where(pm => pm.IsActive && pm.EndDate == null)
-            .Select(pm => pm.Employee)
+            .Select(pm => pm.PersonalInfo)
             .ToList() ?? [];
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public GeoPacificEmployee? PrimaryContact => 
+    public PersonalInfo? ActiveProjectManager => 
         ActiveProjectManagers.FirstOrDefault();
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public ICollection<GeoPacificEmployee> AllProjectManagers => 
+    public ICollection<PersonalInfo> AllProjectManagers => 
         ProjectManagers?
-            .Select(pm => pm.Employee)
+            .Select(pm => pm.PersonalInfo)
             .ToList() ?? [];
 
     // Computed properties for easy access to site contacts
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public ICollection<PersonalInfo> ActiveSiteContacts => 
+    public ICollection<PersonalInfo> ActiveSiteContact => 
         SiteContacts?
             .Where(sc => sc.IsActive && sc.EndDate == null)
             .Select(sc => sc.PersonalInfo)
             .ToList() ?? [];
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public PersonalInfo? PrimarySiteContact => 
-        SiteContacts?
-            .Where(sc => sc.IsPrimary && sc.IsActive && sc.EndDate == null)
-            .Select(sc => sc.PersonalInfo)
-            .FirstOrDefault();
-
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public ICollection<PersonalInfo> AllSiteContacts => 
         SiteContacts?
             .Select(sc => sc.PersonalInfo)
             .ToList() ?? [];
-
-    // Convenience property to directly access proctors (not mapped to database)
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public ICollection<Proctor> Proctors => ProctorAdditionalJobs?.Select(paj => paj.Proctor).ToList() ?? [];
 
     // Proctors that belong directly to this job (through LabTest)
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
