@@ -25,3 +25,7 @@ run 'dotnet ef database update'
 
 Running the Server:
 run 'dotnet run'
+
+
+Test Job Creation:
+/test_job_creation.sh

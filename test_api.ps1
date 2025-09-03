@@ -1,4 +1,4 @@
-# PowerShell script to test the API endpoints
+.json# PowerShell script to test the API endpoints
 Write-Host "Testing API endpoints..." -ForegroundColor Green
 
 # Test 1: Check if the application is running

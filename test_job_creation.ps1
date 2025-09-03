@@ -1,10 +1,14 @@
 # Test script to create a job via the API
-$baseUrl = "https://localhost:7000"  # Adjust port if needed
+$baseUrl = "http://localhost:5013"  # Adjust port if needed
 $endpoint = "$baseUrl/api/jobs"
+
+# Generate random job number between 15000 and 25000
+$randomJobNumber = Get-Random -Minimum 15000 -Maximum 25000
+Write-Host "Generated random job number: $randomJobNumber"
 
 # Test job data
 $jobData = @{
-    JobNumber = "2024-TEST-001"
+    JobNumber = $randomJobNumber.ToString()
     ClientName = "Test Construction Company"
     ProjectName = "Test Project - API Validation"
     SiteAddress = "123 Test Street, Test City, TC 12345"

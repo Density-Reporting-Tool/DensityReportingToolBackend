@@ -1,16 +1,20 @@
 #!/bin/bash
 
 # Test script to create a job via the API using curl
-BASE_URL="https://localhost:7000"  # Adjust port if needed
+BASE_URL="http://localhost:5013"  # Adjust port if needed
 ENDPOINT="$BASE_URL/api/jobs"
 
 echo "Testing Job Creation API..."
 echo "Endpoint: $ENDPOINT"
 echo ""
 
+# Generate random job number between 15000 and 25000
+RANDOM_JOB_NUMBER=$((RANDOM % 10000 + 15000))
+echo "Generated random job number: $RANDOM_JOB_NUMBER"
+
 # Test job data
 JOB_DATA='{
-    "JobNumber": "2024-TEST-002",
+    "JobNumber": "'$RANDOM_JOB_NUMBER'",
     "ClientName": "Test Construction Company",
     "ProjectName": "Test Project - cURL Validation",
     "SiteAddress": "456 Test Avenue, Test City, TC 67890",
