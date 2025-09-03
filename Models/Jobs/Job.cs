@@ -4,6 +4,9 @@ public class Job
 {
     public int Id { get; set; }
     
+    // Job number - can be numeric (e.g., "25482") or alphanumeric (e.g., "15827-A")
+    public required string JobNumber { get; set; }
+    
     // Client relationship
     public int ClientId { get; set; }
     public Client Client { get; set; } = null!;
