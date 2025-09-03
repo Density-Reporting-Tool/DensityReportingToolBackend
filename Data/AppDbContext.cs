@@ -66,9 +66,9 @@ namespace DensityReportingToolBackend.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<JobProjectManager>()
-                .HasOne(jpm => jpm.Employee)
+                .HasOne(jpm => jpm.PersonalInfo)
                 .WithMany()
-                .HasForeignKey(jpm => jpm.EmployeeId)
+                .HasForeignKey(jpm => jpm.PersonalInfoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<JobSiteContact>()
@@ -89,18 +89,11 @@ namespace DensityReportingToolBackend.Data
                 .HasFilter("\"IsPrimary\" = true AND \"IsActive\" = true")
                 .IsUnique();
 
-            modelBuilder.Entity<JobNote>(b =>
-            {
-                b.HasOne(jn => jn.Job)
-                    .WithMany(j => j.JobNotes)
-                    .HasForeignKey(jn => jn.JobId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                b.HasOne(jn => jn.Comment)
-                    .WithMany(c => c.JobNotes)
-                    .HasForeignKey(jn => jn.CommentId)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
+            modelBuilder.Entity<JobNote>()
+                .HasOne(jn => jn.Job)
+                .WithMany(j => j.JobNotes)
+                .HasForeignKey(jn => jn.JobId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // ---------- Reports / Comments ----------
             modelBuilder.Entity<MemoComment>(b =>
