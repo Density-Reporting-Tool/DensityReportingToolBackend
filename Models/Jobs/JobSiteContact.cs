@@ -15,7 +15,6 @@ public class JobSiteContact
     public string? Role { get; set; }           // e.g., "Site Supervisor", "Safety Officer", "Foreman"
     public bool IsPrimary { get; set; } = false; // Primary site contact for the job
     
-    public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }      // Null means currently active
     
     public string? Notes { get; set; }          // e.g., "Available 6AM-6PM", "Weekend emergency contact"

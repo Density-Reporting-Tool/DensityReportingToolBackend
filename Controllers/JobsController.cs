@@ -92,8 +92,7 @@ namespace DensityReportingToolBackend.Controllers
                             sc.Company,
                             sc.Role,
                             sc.IsPrimary,
-                            sc.Notes,
-                            sc.StartDate
+                            sc.Notes
                         }) ?? Enumerable.Empty<object>()
                 };
 
