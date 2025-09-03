@@ -50,25 +50,23 @@ namespace DensityReportingToolBackend.Controllers
             return employees;
         }
 
-        [HttpGet("contractors")]
+                [HttpGet("contractors")]
         public async Task<IEnumerable<object>> GetContractors()
         {
-            // Return all contractors with their personal info and company
-            var contractors = await _dbContext.Contractors
-                .Include(c => c.PersonalInfo)
-                .Include(c => c.Client)
-                .Select(c => new
+            // Return all people with company information (contractors are now just PersonalInfo with Company field)
+            var contractors = await _dbContext.PersonalInfos
+                .Where(p => !string.IsNullOrEmpty(p.Company))
+                .Select(p => new
                 {
-                    c.Id,
-                    c.PersonalInfo.FirstName,
-                    c.PersonalInfo.LastName,
-                    c.PersonalInfo.Email,
-                    c.PersonalInfo.PhoneNumber,
-                    CompanyName = c.CompanyName,
-                    ClientName = c.Client != null ? c.Client.Name : null
+                    p.Id,
+                    p.FirstName,
+                    p.LastName,
+                    p.Email,
+                    p.PhoneNumber,
+                    CompanyName = p.Company
                 })
                 .ToListAsync();
-            
+
             return contractors;
         }
 
@@ -85,8 +83,8 @@ namespace DensityReportingToolBackend.Controllers
                     p.Email,
                     p.PhoneNumber,
                     PersonType = p.Employee != null ? "GeoPacific Employee" : 
-                                p.Contractor != null ? "Contractor" : "Unknown",
-                    CompanyName = p.Contractor != null ? p.Contractor.CompanyName : null,
+                                !string.IsNullOrEmpty(p.Company) ? "Contractor" : "Unknown",
+                    CompanyName = p.Company,
                     Role = p.Employee != null ? p.Employee.Role.RoleTitle : null
                 })
                 .ToListAsync();

@@ -48,7 +48,7 @@ public class Job
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public ICollection<PersonalInfo> ActiveSiteContact => 
         SiteContacts?
-            .Where(sc => sc.IsActive && sc.EndDate == null)
+            .Where(sc => sc.IsActive)
             .Select(sc => sc.PersonalInfo)
             .ToList() ?? [];
 

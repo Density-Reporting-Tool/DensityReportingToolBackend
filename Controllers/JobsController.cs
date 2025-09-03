@@ -77,7 +77,7 @@ namespace DensityReportingToolBackend.Controllers
                             pm.StartDate
                         }) ?? Enumerable.Empty<object>(),
                     SiteContacts = job.SiteContacts?
-                        .Where(sc => sc.IsActive && sc.EndDate == null)
+                        .Where(sc => sc.IsActive)
                         .Select(sc => new
                         {
                             sc.PersonalInfo.Id,
