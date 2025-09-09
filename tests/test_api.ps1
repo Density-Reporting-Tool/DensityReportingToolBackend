@@ -4,7 +4,7 @@ Write-Host "Testing API endpoints..." -ForegroundColor Green
 # Test 1: Check if the application is running
 Write-Host "`n1. Testing basic connectivity..." -ForegroundColor Yellow
 try {
-    $response = Invoke-RestMethod -Uri "http://localhost:5000/swagger" -Method Get -TimeoutSec 5
+    $response = Invoke-RestMethod -Uri "http://localhost:5013/swagger" -Method Get -TimeoutSec 5
     Write-Host "✓ Swagger endpoint accessible" -ForegroundColor Green
 } catch {
     Write-Host "✗ Swagger endpoint not accessible. Make sure the application is running." -ForegroundColor Red
@@ -16,7 +16,7 @@ try {
 Write-Host "`n2. Testing TestController endpoints..." -ForegroundColor Yellow
 
 try {
-    $employees = Invoke-RestMethod -Uri "http://localhost:5000/api/test/employees" -Method Get
+    $employees = Invoke-RestMethod -Uri "http://localhost:5013/api/test/employees" -Method Get
     Write-Host "✓ GetEmployees endpoint working" -ForegroundColor Green
     Write-Host "  Found $($employees.Count) employees" -ForegroundColor Gray
 } catch {
@@ -24,7 +24,7 @@ try {
 }
 
 try {
-    $contractors = Invoke-RestMethod -Uri "http://localhost:5000/api/test/contractors" -Method Get
+    $contractors = Invoke-RestMethod -Uri "http://localhost:5013/api/test/contractors" -Method Get
     Write-Host "✓ GetContractors endpoint working" -ForegroundColor Green
     Write-Host "  Found $($contractors.Count) contractors" -ForegroundColor Gray
 } catch {
@@ -32,7 +32,7 @@ try {
 }
 
 try {
-    $people = Invoke-RestMethod -Uri "http://localhost:5000/api/test/people" -Method Get
+    $people = Invoke-RestMethod -Uri "http://localhost:5013/api/test/people" -Method Get
     Write-Host "✓ GetAllPeople endpoint working" -ForegroundColor Green
     Write-Host "  Found $($people.Count) people total" -ForegroundColor Gray
 } catch {
@@ -43,7 +43,7 @@ try {
 Write-Host "`n3. Testing PeopleController endpoints..." -ForegroundColor Yellow
 
 try {
-    $allPeople = Invoke-RestMethod -Uri "http://localhost:5000/api/people" -Method Get
+    $allPeople = Invoke-RestMethod -Uri "http://localhost:5013/api/people" -Method Get
     Write-Host "✓ PeopleController GetAllPeople endpoint working" -ForegroundColor Green
     Write-Host "  Found $($allPeople.Count) people" -ForegroundColor Gray
 } catch {
@@ -54,7 +54,7 @@ try {
 Write-Host "`n4. Testing JobsController endpoints..." -ForegroundColor Yellow
 
 try {
-    $jobs = Invoke-RestMethod -Uri "http://localhost:5000/api/jobs" -Method Get
+    $jobs = Invoke-RestMethod -Uri "http://localhost:5013/api/jobs" -Method Get
     Write-Host "✓ GetJobs endpoint working" -ForegroundColor Green
     Write-Host "  Found $($jobs.Count) jobs" -ForegroundColor Gray
 } catch {
@@ -62,4 +62,4 @@ try {
 }
 
 Write-Host "`nAPI testing completed!" -ForegroundColor Green
-Write-Host "`nTo view the full API documentation, visit: http://localhost:5000/swagger" -ForegroundColor Cyan
+Write-Host "`nTo view the full API documentation, visit: http://localhost:5013/swagger" -ForegroundColor Cyan

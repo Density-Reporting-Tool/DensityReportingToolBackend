@@ -113,6 +113,34 @@ namespace DensityReportingToolBackend.Controllers
 
             return Ok(people);
         }
+
+        // Create a contractor (PersonalInfo with Company)
+        [HttpPost("contractors")]
+        public async Task<ActionResult<PersonalInfo>> CreateContractor([FromBody] CreateContractorRequest request)
+        {
+            try
+            {
+                var personalInfo = new PersonalInfo
+                {
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    Email = request.Email,
+                    PhoneNumber = request.PhoneNumber,
+                    Company = request.Company
+                };
+
+                _dbContext.PersonalInfos.Add(personalInfo);
+                await _dbContext.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetEmployee), new { id = personalInfo.Id }, personalInfo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating contractor");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
     }
 
     // Request models
@@ -124,6 +152,15 @@ namespace DensityReportingToolBackend.Controllers
         public required string PhoneNumber { get; set; }
         public required int RoleId { get; set; }
         public required string Password { get; set; }
+    }
+
+    public class CreateContractorRequest
+    {
+        public required string FirstName { get; set; }
+        public required string LastName { get; set; }
+        public required string Email { get; set; }
+        public required string PhoneNumber { get; set; }
+        public required string Company { get; set; }
     }
 
 
