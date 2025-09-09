@@ -19,6 +19,79 @@ namespace DensityReportingToolBackend.Controllers
         }
 
         /// <summary>
+        /// Get all jobs for dashboard/schedule view
+        /// </summary>
+        /// <returns>List of all jobs with basic information</returns>
+        [HttpGet]
+        public async Task<ActionResult<object>> GetAllJobs()
+        {
+            try
+            {
+                _logger.LogInformation("Retrieving all jobs for dashboard");
+
+                var jobs = await _dbContext.Jobs
+                    .Include(j => j.ProjectManagers)
+                        .ThenInclude(jpm => jpm.PersonalInfo)
+                    .Include(j => j.SiteContacts)
+                        .ThenInclude(jsc => jsc.PersonalInfo)
+                    .OrderByDescending(j => j.StartDate)
+                    .ThenBy(j => j.JobNumber)
+                    .ToListAsync();
+
+                var result = jobs.Select(job => new
+                {
+                    Id = job.Id,
+                    JobNumber = job.JobNumber,
+                    ClientName = job.ClientName,
+                    ProjectName = job.ProjectName,
+                    SiteAddress = job.SiteAddress,
+                    StartDate = job.StartDate,
+                    EndDate = job.EndDate,
+                    ProjectManagers = job.ProjectManagers?
+                        .Where(pm => pm.IsActive && pm.EndDate == null)
+                        .Select(pm => new
+                        {
+                            pm.PersonalInfo.Id,
+                            FirstName = pm.PersonalInfo.FirstName,
+                            LastName = pm.PersonalInfo.LastName,
+                            Email = pm.PersonalInfo.Email,
+                            PhoneNumber = pm.PersonalInfo.PhoneNumber
+                        }) ?? Enumerable.Empty<object>(),
+                    SiteContacts = job.SiteContacts?
+                        .Where(sc => sc.IsActive)
+                        .Select(sc => new
+                        {
+                            sc.PersonalInfo.Id,
+                            FirstName = sc.PersonalInfo.FirstName,
+                            LastName = sc.PersonalInfo.LastName,
+                            Email = sc.PersonalInfo.Email,
+                            PhoneNumber = sc.PersonalInfo.PhoneNumber,
+                            sc.Company,
+                            sc.Role,
+                            sc.IsPrimary
+                        }) ?? Enumerable.Empty<object>(),
+                    JobNotes = job.JobNotes?
+                        .Select(n => new
+                        {
+                            n.Id,
+                            n.Note,
+                            n.CreatedDate
+                        }) ?? Enumerable.Empty<object>()
+                }).ToList();
+
+                _logger.LogInformation("Successfully retrieved {JobCount} jobs", result.Count);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all jobs");
+                return StatusCode(500, new { 
+                    message = "An error occurred while retrieving jobs"
+                });
+            }
+        }
+
+        /// <summary>
         /// Get job information by job number
         /// </summary>
         /// <param name="jobNumber">The job number to search for (can be numeric like "25482" or alphanumeric like "15827-A")</param>
@@ -57,13 +130,10 @@ namespace DensityReportingToolBackend.Controllers
                     Id = job.Id,
                     JobNumber = job.JobNumber,
                     ClientName = job.ClientName,
-                    Project = new
-                    {
-                    job.ProjectName,
-                    job.SiteAddress,
-                    job.StartDate,
-                        job.EndDate
-                    },
+                    ProjectName = job.ProjectName,
+                    SiteAddress = job.SiteAddress,
+                    StartDate = job.StartDate,
+                    EndDate = job.EndDate,
                     ProjectManagers = job.ProjectManagers?
                         .Where(pm => pm.IsActive && pm.EndDate == null)
                         .Select(pm => new
