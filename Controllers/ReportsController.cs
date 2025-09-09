@@ -325,6 +325,99 @@ namespace DensityReportingToolBackend.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Get proctors available for a specific job
+        /// </summary>
+        [HttpGet("proctors/job/{jobId}")]
+        public async Task<ActionResult<object>> GetProctorsForJob(int jobId)
+        {
+            try
+            {
+                _logger.LogInformation("Getting proctors for job {JobId}", jobId);
+
+                var proctors = await _dbContext.Proctors
+                    .Include(p => p.ProctorType)
+                    .Include(p => p.LabTest)
+                    .Where(p => p.LabTest.JobId == jobId)
+                    .Select(p => new
+                    {
+                        p.Id,
+                        p.ProctorID,
+                        p.MaxDensity,
+                        p.CorrectedDensity,
+                        p.OptimumMoistureContent,
+                        p.SpecificGravity,
+                        ProctorType = p.ProctorType.Type,
+                        MaterialType = p.LabTest.MaterialType
+                    })
+                    .ToListAsync();
+
+                _logger.LogInformation("Found {Count} proctors for job {JobId}", proctors.Count, jobId);
+                return Ok(proctors);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting proctors for job {JobId}", jobId);
+                return StatusCode(500, new { message = "An error occurred while getting proctors" });
+            }
+        }
+
+        /// <summary>
+        /// Create a new density test for a report
+        /// </summary>
+        [HttpPost("{reportId}/density-test")]
+        public async Task<ActionResult<object>> CreateDensityTest(int reportId, [FromBody] CreateDensityTestRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Creating density test for report {ReportId}", reportId);
+
+                // Verify report exists
+                var report = await _dbContext.Reports.FindAsync(reportId);
+                if (report == null)
+                {
+                    return NotFound(new { message = "Report not found" });
+                }
+
+                // Create density test
+                var densityTest = new DensityTest
+                {
+                    ReportId = reportId,
+                    ProctorId = request.ProctorId,
+                    TestArea = request.TestArea,
+                    Location = request.Location,
+                    ElevationReference = Enum.Parse<ElevationReference>(request.ElevationReference),
+                    ElevationValue = request.ElevationValue,
+                    ElevationUnit = Enum.Parse<ElevationUnit>(request.ElevationUnit),
+                    CorrectedOversizePercentage = (float)request.CorrectedOversizePercentage,
+                    ProbeDepth = (int)request.ProbeDepth,
+                    ProbeDepthUnit = Enum.Parse<ProbeDepthUnit>(request.ProbeDepthUnit),
+                    CompactionSpecification = request.CompactionSpecification,
+                    CompactionSpecificationUnit = Enum.Parse<CompactionSpecificationUnit>(request.CompactionSpecificationUnit),
+                    DensityValue = request.DensityValue,
+                    MoistureValue = request.MoistureValue,
+                    CreatedDate = DateTime.UtcNow
+                };
+
+                _dbContext.DensityTests.Add(densityTest);
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Density test created with ID {DensityTestId}", densityTest.Id);
+
+                return Ok(new { 
+                    id = densityTest.Id,
+                    message = "Density test created successfully" 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating density test for report {ReportId}", reportId);
+                return StatusCode(500, new { 
+                    message = "An error occurred while creating the density test" 
+                });
+            }
+        }
     }
 
     /// <summary>
@@ -347,5 +440,22 @@ namespace DensityReportingToolBackend.Controllers
         public string? Purpose { get; set; }
         public string? CommentsAndObservations { get; set; }
         public string? Conclusion { get; set; }
+    }
+
+    public class CreateDensityTestRequest
+    {
+        public required int ProctorId { get; set; }
+        public string? TestArea { get; set; }
+        public string? Location { get; set; }
+        public string ElevationReference { get; set; } = "AboveSubgrade";
+        public double ElevationValue { get; set; }
+        public string ElevationUnit { get; set; } = "Meters";
+        public double CorrectedOversizePercentage { get; set; }
+        public double ProbeDepth { get; set; }
+        public string ProbeDepthUnit { get; set; } = "Cm";
+        public double CompactionSpecification { get; set; }
+        public string CompactionSpecificationUnit { get; set; } = "SPDD";
+        public double DensityValue { get; set; }
+        public double MoistureValue { get; set; }
     }
 }
