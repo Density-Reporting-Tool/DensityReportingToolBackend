@@ -76,7 +76,7 @@ namespace DensityReportingToolBackend.Services
                 JobId = jobId,
                 MaterialType = request.MaterialType,
                 ImportLocation = request.LabLocation,
-                ReceiveDate = DateTime.TryParse(request.DateSampled, out var sampledDate) ? sampledDate : null
+                ReceiveDate = DateTime.TryParse(request.DateSampled, out var sampledDate) ? DateTime.SpecifyKind(sampledDate, DateTimeKind.Utc) : null
             };
             
             _dbContext.LabTests.Add(labTest);
@@ -95,7 +95,7 @@ namespace DensityReportingToolBackend.Services
                 
             if (proctorType == null)
             {
-                throw new ArgumentException($"Proctor type '{proctorTypeName}' not found. Available types: MPDD, SPDD");
+                throw new ArgumentException($"Proctor type '{proctorTypeName}' not found. Available types: SPDD, MPDD");
             }
             
             _logger.LogInformation("Using ProctorType: {ProctorType} (ID: {ProctorTypeId})", 
@@ -116,7 +116,7 @@ namespace DensityReportingToolBackend.Services
                 OptimumMoistureContent = request.OptimumMoisture,
                 SpecificGravity = ParseDoubleOrNull(request.SpecificGravity),
                 OversizePercentage = request.OversizePercentage,
-                DateTested = DateTime.TryParse(request.DateTested, out var testedDate) ? testedDate : null
+                DateTested = DateTime.TryParse(request.DateTested, out var testedDate) ? DateTime.SpecifyKind(testedDate, DateTimeKind.Utc) : null
             };
             
             _dbContext.Proctors.Add(proctor);

@@ -30,6 +30,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Register services
+builder.Services.AddScoped<DensityReportingToolBackend.Services.IProctorService, DensityReportingToolBackend.Services.ProctorService>();
+
 // Returns a WebApplication instance, which represents your running server
 var app = builder.Build();
 

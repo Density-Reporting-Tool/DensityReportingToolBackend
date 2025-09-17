@@ -26,7 +26,7 @@ namespace DensityReportingToolBackend.Models.DTOs
         public required string DateSampled { get; set; }
 
         [Required(ErrorMessage = "Proctor type is required")]
-        [RegularExpression("^(MPDD|Standard|Modified)$", ErrorMessage = "Proctor type must be MPDD, Standard, or Modified")]
+        [RegularExpression("^(SPDD|MPDD)$", ErrorMessage = "Proctor type must be SPDD or MPDD")]
         public required string ProctorType { get; set; }
 
         [Required(ErrorMessage = "Max dry density is required")]
@@ -73,7 +73,7 @@ namespace DensityReportingToolBackend.Models.DTOs
         public required string DateSampled { get; set; }
 
         [Required(ErrorMessage = "Proctor type is required")]
-        [RegularExpression("^(MPDD|Standard|Modified)$", ErrorMessage = "Proctor type must be MPDD, Standard, or Modified")]
+        [RegularExpression("^(SPDD|MPDD)$", ErrorMessage = "Proctor type must be SPDD or MPDD")]
         public required string ProctorType { get; set; }
 
         [Required(ErrorMessage = "Max dry density is required")]
