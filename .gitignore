@@ -9,6 +9,8 @@ obj/
 *.sln.docstates
 .vs/
 
+.env
+
 # Rider IDE
 .idea/
 
