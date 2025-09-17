@@ -3,6 +3,7 @@
 ## 🔒 **Secure Database Connection Setup**
 
 ### **Current Setup:**
+
 - ✅ `appsettings.json` - Uses environment variables (safe for git)
 - ✅ `appsettings.Development.json` - Contains actual credentials (ignored by git)
 - ✅ `.gitignore` - Prevents sensitive files from being committed
@@ -14,13 +15,14 @@
 
 ### **Environment Variables for Production:**
 
+Refer to discord channel for env variables.
 Set these environment variables on your server:
 
 ```bash
-DB_HOST=ep-purple-art-aa9fvlr7-pooler.westus3.azure.neon.tech
-DB_NAME=neondb
-DB_USER=neondb_owner
-DB_PASSWORD=npg_ygUF4x0pNEbX
+DB_HOST=
+POSTGRES_PASSWORD=
+POSTGRES_USER=
+POSTGRES_DB=
 ```
 
 ### **Local Development:**
