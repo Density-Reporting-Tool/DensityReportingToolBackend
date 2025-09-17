@@ -1,3 +1,5 @@
+namespace DensityReportingToolBackend.Models;
+
 public class Proctor
 {
     public int Id { get; set; }
