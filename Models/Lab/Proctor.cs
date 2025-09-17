@@ -20,6 +20,13 @@ public class Proctor
     public double? OptimumMoistureContent { get; set; }
     public double? SpecificGravity { get; set; }
 
+    public string? ProctorTestNumber { get; set; }   
+    public string? MaterialType { get; set; }       
+    public DateTime? DateSampled { get; set; }        
+    public DateTime? DateTested { get; set; }        
+    public double? OversizePercentage { get; set; }  
+    public string? LabLocation { get; set; }  
+
     public ICollection<ProctorAdditionalJob> AdditionalJobs { get; set; } = [];
     public ICollection<DensityTest> DensityTests { get; set; } = [];
 }
