@@ -178,14 +178,55 @@ namespace DensityReportingToolBackend.Services
 
         public async Task<ProctorDataResponse?> GetProctorAsync(int id)
         {
-            // TODO: Implement get proctor functionality
-            throw new NotImplementedException("GetProctorAsync not yet implemented");
+            try
+            {
+                _logger.LogInformation("Getting proctor with ID: {ProctorId}", id);
+
+                var proctor = await _dbContext.Proctors
+                    .Include(p => p.LabTest)
+                    .ThenInclude(lt => lt.Job)
+                    .Include(p => p.ProctorType)
+                    .FirstOrDefaultAsync(p => p.Id == id);
+
+                if (proctor == null)
+                {
+                    _logger.LogWarning("Proctor with ID {ProctorId} not found", id);
+                    return null;
+                }
+
+                _logger.LogInformation("Found proctor {ProctorId} for job {JobNumber}", id, proctor.LabTest.Job.JobNumber);
+                
+                return MapToDataResponse(proctor);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting proctor with ID: {ProctorId}", id);
+                throw;
+            }
         }
 
         public async Task<IEnumerable<ProctorDataResponse>> GetProctorsForJobAsync(string jobNumber)
         {
-            // TODO: Implement get proctors for job functionality
-            throw new NotImplementedException("GetProctorsForJobAsync not yet implemented");
+            try
+            {
+                _logger.LogInformation("Getting proctors for job: {JobNumber}", jobNumber);
+
+                var proctors = await _dbContext.Proctors
+                    .Include(p => p.LabTest)
+                    .ThenInclude(lt => lt.Job)
+                    .Include(p => p.ProctorType)
+                    .Where(p => p.LabTest.Job.JobNumber == jobNumber)
+                    .ToListAsync();
+
+                _logger.LogInformation("Found {Count} proctors for job {JobNumber}", proctors.Count, jobNumber);
+
+                return proctors.Select(MapToDataResponse);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting proctors for job: {JobNumber}", jobNumber);
+                throw;
+            }
         }
 
         public async Task<ProctorListResponse> GetProctorsForLabAdminAsync(int page, int limit, string? jobNumber = null)
@@ -198,6 +239,26 @@ namespace DensityReportingToolBackend.Services
         {
             // TODO: Implement get density requirements functionality
             throw new NotImplementedException("GetDensityRequirementsAsync not yet implemented");
+        }
+
+        private static ProctorDataResponse MapToDataResponse(Proctor proctor)
+        {
+            return new ProctorDataResponse
+            {
+                JobNumber = proctor.LabTest.Job.JobNumber,
+                ProctorTestNumber = proctor.ProctorTestNumber ?? "",
+                MaterialType = proctor.LabTest.MaterialType ?? "",
+                DateSampled = proctor.LabTest.ReceiveDate?.ToString("yyyy-MM-dd") ?? "",
+                ProctorType = proctor.ProctorType.Type,
+                MaxDryDensity = proctor.MaxDensity?.ToString() ?? "",
+                CorrectedDensity = proctor.CorrectedDensity?.ToString() ?? "",
+                LabLocation = proctor.LabTest.ImportLocation ?? "",
+                ProctorId = proctor.ProctorID ?? "",
+                DateTested = proctor.DateTested?.ToString("yyyy-MM-dd") ?? "",
+                OversizePercentage = proctor.OversizePercentage ?? 0,
+                OptimumMoisture = proctor.OptimumMoistureContent ?? 0,
+                SpecificGravity = proctor.SpecificGravity?.ToString() ?? ""
+            };
         }
 
         #endregion
