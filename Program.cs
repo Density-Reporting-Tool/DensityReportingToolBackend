@@ -15,12 +15,16 @@ builder.Services.AddEndpointsApiExplorer();
 // Adds Swagger/OpenAPI generation, so you can view and test your API in /swagger
 builder.Services.AddSwaggerGen();
 
-// Add CORS support for local development
+// Add CORS support for local development and production
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowLocalFrontend", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        policy.WithOrigins(
+                "http://localhost:5173", 
+                "http://localhost:3000",
+                "https://density-reporting-tool-frontend-2ue6fw1zs.vercel.app"
+              )
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -45,7 +49,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // Use CORS before other middleware
-app.UseCors("AllowLocalFrontend");
+app.UseCors("AllowFrontend");
 
 // Redirects HTTP requests to HTTPS automatically (disabled in development)
 if (!app.Environment.IsDevelopment())
