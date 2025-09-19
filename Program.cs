@@ -32,6 +32,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Register services
 builder.Services.AddScoped<DensityReportingToolBackend.Services.IProctorService, DensityReportingToolBackend.Services.ProctorService>();
+builder.Services.AddScoped<DensityReportingToolBackend.Services.IReportService, DensityReportingToolBackend.Services.ReportService>();
 
 // Returns a WebApplication instance, which represents your running server
 var app = builder.Build();
