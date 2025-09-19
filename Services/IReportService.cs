@@ -13,5 +13,10 @@ namespace DensityReportingToolBackend.Services
         /// Get all reports for a specific job (newest first)
         /// </summary>
         Task<IEnumerable<ReportListByJobResponse>> GetReportsByJobAsync(string jobNumber);
+        
+        /// <summary>
+        /// Get a specific report by ID with full details
+        /// </summary>
+        Task<ReportDetailResponse?> GetReportAsync(int reportId);
     }
 }

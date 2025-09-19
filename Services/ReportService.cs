@@ -108,6 +108,37 @@ namespace DensityReportingToolBackend.Services
             }
         }
 
+        public async Task<ReportDetailResponse?> GetReportAsync(int reportId)
+        {
+            try
+            {
+                _logger.LogInformation("Getting report with ID: {ReportId}", reportId);
+
+                var report = await _dbContext.Reports
+                    .Include(r => r.Job)
+                    .Include(r => r.Employee)
+                    .Include(r => r.Reviewer)
+                    .Include(r => r.DensityTests)
+                    .Include(r => r.Photos)
+                    .Include(r => r.Memos)
+                    .FirstOrDefaultAsync(r => r.Id == reportId);
+
+                if (report == null)
+                {
+                    _logger.LogWarning("Report with ID {ReportId} not found", reportId);
+                    return null;
+                }
+
+                _logger.LogInformation("Successfully retrieved report {ReportId}", reportId);
+                return MapToDetailResponse(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting report with ID: {ReportId}", reportId);
+                throw;
+            }
+        }
+
         #region Private Helper Methods
 
         private async Task<Job> FindJobAsync(int jobId)
@@ -178,7 +209,7 @@ namespace DensityReportingToolBackend.Services
             {
                 JobId = request.JobId,
                 EmployeeId = request.EmployeeId,
-                ReviewerId = request.ReviewerId ?? 0, // Will be set when reviewer is assigned
+                ReviewerId = request.ReviewerId, // Now properly nullable
                 ReportNumber = reportNumber,
                 StartDate = request.StartDate ?? DateTime.UtcNow,
                 SubmitDate = request.SubmitDate,
@@ -290,6 +321,76 @@ namespace DensityReportingToolBackend.Services
                 DensityTestsCount = report.DensityTests.Count,
                 PhotosCount = report.Photos.Count,
                 MemosCount = report.Memos.Count,
+                DistributionListId = report.DistributionListId
+            };
+        }
+
+        private static ReportDetailResponse MapToDetailResponse(Report report)
+        {
+            return new ReportDetailResponse
+            {
+                Id = report.Id,
+                JobId = report.JobId,
+                Job = new JobInfo
+                {
+                    Id = report.Job.Id,
+                    JobNumber = report.Job.JobNumber,
+                    ClientName = report.Job.ClientName,
+                    ProjectName = report.Job.ProjectName
+                },
+                ReportNumber = report.ReportNumber,
+                StartDate = report.StartDate,
+                SubmitDate = report.SubmitDate,
+                DistributeDate = report.DistributeDate,
+                Employee = new EmployeeInfo
+                {
+                    Id = report.Employee.Id,
+                    FirstName = report.Employee.FirstName,
+                    LastName = report.Employee.LastName,
+                    Email = report.Employee.Email,
+                    PhoneNumber = report.Employee.PhoneNumber
+                },
+                Reviewer = report.Reviewer != null ? new EmployeeInfo
+                {
+                    Id = report.Reviewer.Id,
+                    FirstName = report.Reviewer.FirstName,
+                    LastName = report.Reviewer.LastName,
+                    Email = report.Reviewer.Email,
+                    PhoneNumber = report.Reviewer.PhoneNumber
+                } : null,
+                DensityTests = report.DensityTests.Select(dt => new DensityTestInfo
+                {
+                    Id = dt.Id,
+                    TestArea = dt.TestArea,
+                    Location = dt.Location,
+                    ElevationReference = dt.ElevationReference.ToString(),
+                    ElevationValue = dt.ElevationValue ?? 0,
+                    ElevationUnit = dt.ElevationUnit.ToString(),
+                    CompactionSpecification = dt.CompactionSpecification ?? 0,
+                    CompactionSpecificationUnit = dt.CompactionSpecificationUnit.ToString(),
+                    DensityValue = dt.DensityValue ?? 0,
+                    MoistureValue = dt.MoistureValue ?? 0,
+                    CreatedDate = dt.CreatedDate ?? DateTime.UtcNow
+                }),
+                Photos = report.Photos.Select(p => new PhotoInfo
+                {
+                    Id = p.Id,
+                    Code = p.Code,
+                    Url = p.Url,
+                    Description = p.Description,
+                    Latitude = p.Latitude,
+                    Longitude = p.Longitude,
+                    GpsAccuracyMeters = p.GpsAccuracyMeters
+                }),
+                Memos = report.Memos.Select(m => new MemoInfo
+                {
+                    Id = m.Id,
+                    Purpose = m.Purpose,
+                    CommentsAndObservations = m.CommentsAndObservations,
+                    Conclusion = m.Conclusion,
+                    CreatedDate = m.CreatedDate ?? DateTime.UtcNow,
+                    UpdatedDate = m.UpdatedDate
+                }),
                 DistributionListId = report.DistributionListId
             };
         }

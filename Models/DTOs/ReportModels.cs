@@ -96,6 +96,74 @@ namespace DensityReportingToolBackend.Models.DTOs
     }
 
     /// <summary>
+    /// Detailed report response with all related data
+    /// </summary>
+    public class ReportDetailResponse
+    {
+        public int Id { get; set; }
+        public int JobId { get; set; }
+        public JobInfo Job { get; set; } = new();
+        public int ReportNumber { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? SubmitDate { get; set; }
+        public DateTime? DistributeDate { get; set; }
+        
+        public EmployeeInfo Employee { get; set; } = new();
+        public EmployeeInfo? Reviewer { get; set; }
+        
+        public IEnumerable<DensityTestInfo> DensityTests { get; set; } = new List<DensityTestInfo>();
+        public IEnumerable<PhotoInfo> Photos { get; set; } = new List<PhotoInfo>();
+        public IEnumerable<MemoInfo> Memos { get; set; } = new List<MemoInfo>();
+        
+        public int? DistributionListId { get; set; }
+    }
+
+    /// <summary>
+    /// Density test information for reports
+    /// </summary>
+    public class DensityTestInfo
+    {
+        public int Id { get; set; }
+        public string? TestArea { get; set; }
+        public string? Location { get; set; }
+        public string? ElevationReference { get; set; }
+        public double ElevationValue { get; set; }
+        public string? ElevationUnit { get; set; }
+        public double CompactionSpecification { get; set; }
+        public string? CompactionSpecificationUnit { get; set; }
+        public double DensityValue { get; set; }
+        public double MoistureValue { get; set; }
+        public DateTime CreatedDate { get; set; }
+    }
+
+    /// <summary>
+    /// Photo information for reports
+    /// </summary>
+    public class PhotoInfo
+    {
+        public int Id { get; set; }
+        public string? Code { get; set; }
+        public string? Url { get; set; }
+        public string? Description { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public double? GpsAccuracyMeters { get; set; }
+    }
+
+    /// <summary>
+    /// Memo information for reports
+    /// </summary>
+    public class MemoInfo
+    {
+        public int Id { get; set; }
+        public string? Purpose { get; set; }
+        public string? CommentsAndObservations { get; set; }
+        public string? Conclusion { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
+    }
+
+    /// <summary>
     /// Employee information for reports
     /// </summary>
     public class EmployeeInfo

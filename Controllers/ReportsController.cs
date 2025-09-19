@@ -61,16 +61,7 @@ namespace DensityReportingToolBackend.Controllers
             {
                 _logger.LogInformation("Retrieving report with ID: {ReportId}", reportId);
 
-                var report = await _dbContext.Reports
-                    .Include(r => r.Job)
-                    .Include(r => r.Employee)
-                        .ThenInclude(e => e.PersonalInfo)
-                    .Include(r => r.Reviewer)
-                        .ThenInclude(r => r.PersonalInfo)
-                    .Include(r => r.DensityTests)
-                    .Include(r => r.Photos)
-                    .Include(r => r.Memos)
-                    .FirstOrDefaultAsync(r => r.Id == reportId);
+                var report = await _reportService.GetReportAsync(reportId);
 
                 if (report == null)
                 {
@@ -81,75 +72,8 @@ namespace DensityReportingToolBackend.Controllers
                     });
                 }
 
-                var result = new
-                {
-                    Id = report.Id,
-                    JobId = report.JobId,
-                    Job = new
-                    {
-                        report.Job.Id,
-                        report.Job.JobNumber,
-                        report.Job.ClientName,
-                        report.Job.ProjectName
-                    },
-                    ReportNumber = report.ReportNumber,
-                    StartDate = report.StartDate,
-                    SubmitDate = report.SubmitDate,
-                    DistributeDate = report.DistributeDate,
-                    Employee = new
-                    {
-                        report.Employee.Id,
-                        FirstName = report.Employee.PersonalInfo.FirstName,
-                        LastName = report.Employee.PersonalInfo.LastName,
-                        Email = report.Employee.PersonalInfo.Email,
-                        PhoneNumber = report.Employee.PersonalInfo.PhoneNumber
-                    },
-                    Reviewer = new
-                    {
-                        report.Reviewer.Id,
-                        FirstName = report.Reviewer.PersonalInfo.FirstName,
-                        LastName = report.Reviewer.PersonalInfo.LastName,
-                        Email = report.Reviewer.PersonalInfo.Email,
-                        PhoneNumber = report.Reviewer.PersonalInfo.PhoneNumber
-                    },
-                    DensityTests = report.DensityTests.Select(dt => new
-                    {
-                        dt.Id,
-                        TestArea = dt.TestArea,
-                        Location = dt.Location,
-                        ElevationReference = dt.ElevationReference,
-                        ElevationValue = dt.ElevationValue,
-                        ElevationUnit = dt.ElevationUnit,
-                        CompactionSpecification = dt.CompactionSpecification,
-                        CompactionSpecificationUnit = dt.CompactionSpecificationUnit,
-                        DensityValue = dt.DensityValue,
-                        MoistureValue = dt.MoistureValue,
-                        CreatedDate = dt.CreatedDate
-                    }),
-                    Photos = report.Photos.Select(p => new
-                    {
-                        p.Id,
-                        Code = p.Code,
-                        Url = p.Url,
-                        Description = p.Description,
-                        Latitude = p.Latitude,
-                        Longitude = p.Longitude,
-                        GpsAccuracyMeters = p.GpsAccuracyMeters
-                    }),
-                    Memos = report.Memos.Select(m => new
-                    {
-                        m.Id,
-                        Purpose = m.Purpose,
-                        CommentsAndObservations = m.CommentsAndObservations,
-                        Conclusion = m.Conclusion,
-                        CreatedDate = m.CreatedDate,
-                        UpdatedDate = m.UpdatedDate
-                    }),
-                    DistributionListId = report.DistributionListId
-                };
-
                 _logger.LogInformation("Successfully retrieved report {ReportId}", reportId);
-                return Ok(result);
+                return Ok(report);
             }
             catch (Exception ex)
             {

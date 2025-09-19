@@ -5,10 +5,14 @@ public class Report
     public int Id { get; set; }
     public int JobId { get; set; }
     public Job Job { get; set; } = null!;
+    
+    // References to PersonalInfo instead of GeoPacificEmployee
     public int EmployeeId { get; set; }
-    public GeoPacificEmployee Employee { get; set; } = null!;
-    public int ReviewerId { get; set; }
-    public GeoPacificEmployee Reviewer { get; set; } = null!;
+    public PersonalInfo Employee { get; set; } = null!;
+    
+    // Nullable ReviewerId since reports can be created without a reviewer initially
+    public int? ReviewerId { get; set; }
+    public PersonalInfo? Reviewer { get; set; }
 
     public int ReportNumber { get; set; }
     public DateTime? StartDate { get; set; }
