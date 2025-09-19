@@ -70,8 +70,36 @@ namespace DensityReportingToolBackend.Services
             {
                 _logger.LogInformation("Getting reports for job: {JobNumber}", jobNumber);
 
-                // TODO: Implement get reports by job logic
-                throw new NotImplementedException("GetReportsByJobAsync not yet implemented");
+                var reports = await _dbContext.Reports
+                    .Include(r => r.Job)
+                    .Include(r => r.DensityTests)
+                    .Include(r => r.Photos)
+                    .Include(r => r.Memos)
+                    .Where(r => r.Job.JobNumber == jobNumber)
+                    .OrderByDescending(r => r.ReportNumber) // Newest reports first
+                    .ToListAsync();
+
+                var result = new List<ReportListByJobResponse>();
+
+                foreach (var report in reports)
+                {
+                    // Get employee info
+                    var employee = await _dbContext.PersonalInfos
+                        .FirstOrDefaultAsync(p => p.Id == report.EmployeeId && p.Company == "GeoPacific");
+
+                    // Get reviewer info (if assigned)
+                    PersonalInfo? reviewer = null;
+                    if (report.ReviewerId > 0)
+                    {
+                        reviewer = await _dbContext.PersonalInfos
+                            .FirstOrDefaultAsync(p => p.Id == report.ReviewerId && p.Company == "GeoPacific");
+                    }
+
+                    result.Add(MapToListByJobResponse(report, employee, reviewer));
+                }
+
+                _logger.LogInformation("Successfully retrieved {ReportCount} reports for job {JobNumber}", result.Count, jobNumber);
+                return result;
             }
             catch (Exception ex)
             {
@@ -227,6 +255,42 @@ namespace DensityReportingToolBackend.Services
                     },
                     DistributionListId = report.DistributionListId
                 }
+            };
+        }
+
+        private static ReportListByJobResponse MapToListByJobResponse(
+            Report report, 
+            PersonalInfo? employee, 
+            PersonalInfo? reviewer)
+        {
+            return new ReportListByJobResponse
+            {
+                Id = report.Id,
+                JobId = report.JobId,
+                ReportNumber = report.ReportNumber,
+                StartDate = report.StartDate,
+                SubmitDate = report.SubmitDate,
+                DistributeDate = report.DistributeDate,
+                Employee = employee != null ? new EmployeeInfo
+                {
+                    Id = employee.Id,
+                    FirstName = employee.FirstName,
+                    LastName = employee.LastName,
+                    Email = employee.Email,
+                    PhoneNumber = employee.PhoneNumber
+                } : new EmployeeInfo(),
+                Reviewer = reviewer != null ? new EmployeeInfo
+                {
+                    Id = reviewer.Id,
+                    FirstName = reviewer.FirstName,
+                    LastName = reviewer.LastName,
+                    Email = reviewer.Email,
+                    PhoneNumber = reviewer.PhoneNumber
+                } : new EmployeeInfo(),
+                DensityTestsCount = report.DensityTests.Count,
+                PhotosCount = report.Photos.Count,
+                MemosCount = report.Memos.Count,
+                DistributionListId = report.DistributionListId
             };
         }
 
