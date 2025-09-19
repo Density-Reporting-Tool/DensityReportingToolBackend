@@ -30,8 +30,12 @@ namespace DensityReportingToolBackend.Services
                 // 2. Validate and find employee
                 var employee = await FindEmployeeAsync(request.EmployeeId);
                 
-                // 3. Validate and find reviewer
-                var reviewer = await FindReviewerAsync(request.ReviewerId);
+                // 3. Validate and find reviewer (if provided)
+                PersonalInfo? reviewer = null;
+                if (request.ReviewerId.HasValue)
+                {
+                    reviewer = await FindReviewerAsync(request.ReviewerId.Value);
+                }
                 
                 // 4. Get next report number for this job
                 var nextReportNumber = await GetNextReportNumberAsync(request.JobId);
@@ -146,7 +150,7 @@ namespace DensityReportingToolBackend.Services
             {
                 JobId = request.JobId,
                 EmployeeId = request.EmployeeId,
-                ReviewerId = request.ReviewerId,
+                ReviewerId = request.ReviewerId ?? 0, // Will be set when reviewer is assigned
                 ReportNumber = reportNumber,
                 StartDate = request.StartDate ?? DateTime.UtcNow,
                 SubmitDate = request.SubmitDate,
@@ -184,10 +188,46 @@ namespace DensityReportingToolBackend.Services
             Report report, 
             Job job, 
             PersonalInfo employee, 
-            PersonalInfo reviewer)
+            PersonalInfo? reviewer)
         {
-            // TODO: Implement mapping to ReportCreateResponse
-            throw new NotImplementedException("MapToCreateResponse not yet implemented - need DTOs");
+            return new ReportCreateResponse
+            {
+                Id = report.Id.ToString(),
+                Message = "Report created successfully",
+                Report = new ReportDataResponse
+                {
+                    Id = report.Id,
+                    JobId = report.JobId,
+                    ReportNumber = report.ReportNumber,
+                    StartDate = report.StartDate,
+                    SubmitDate = report.SubmitDate,
+                    DistributeDate = report.DistributeDate,
+                    Employee = new EmployeeInfo
+                    {
+                        Id = employee.Id,
+                        FirstName = employee.FirstName,
+                        LastName = employee.LastName,
+                        Email = employee.Email,
+                        PhoneNumber = employee.PhoneNumber
+                    },
+                    Reviewer = reviewer != null ? new EmployeeInfo
+                    {
+                        Id = reviewer.Id,
+                        FirstName = reviewer.FirstName,
+                        LastName = reviewer.LastName,
+                        Email = reviewer.Email,
+                        PhoneNumber = reviewer.PhoneNumber
+                    } : new EmployeeInfo(), // Empty reviewer info if none assigned
+                    Job = new JobInfo
+                    {
+                        Id = job.Id,
+                        JobNumber = job.JobNumber,
+                        ClientName = job.ClientName,
+                        ProjectName = job.ProjectName
+                    },
+                    DistributionListId = report.DistributionListId
+                }
+            };
         }
 
         #endregion
