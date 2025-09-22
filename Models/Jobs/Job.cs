@@ -1,7 +1,5 @@
 namespace DensityReportingToolBackend.Models;
 
-using System.ComponentModel.DataAnnotations.Schema;
-
 public class Job
 {
     public int Id { get; set; }
@@ -27,44 +25,37 @@ public class Job
     public ICollection<DistributionList> DistributionLists { get; set; } = [];
     public ICollection<JobProjectManager> ProjectManagers { get; set; } = [];
     public ICollection<JobSiteContact> SiteContacts { get; set; } = [];
+}
 
-    // Computed properties for easy access to project managers
-    [NotMapped]
-    public ICollection<PersonalInfo> ActiveProjectManagers =>
-        ProjectManagers?
+public static class JobExtensions
+{
+    public static IEnumerable<PersonalInfo> GetActiveProjectManagers(this Job job) =>
+        job.ProjectManagers?
             .Where(pm => pm.IsActive && pm.EndDate == null)
             .Select(pm => pm.PersonalInfo)
-            .ToList() ?? [];
+        ?? [];
 
-    [NotMapped]
-    public PersonalInfo? ActiveProjectManager =>
-        ActiveProjectManagers.FirstOrDefault();
+    public static PersonalInfo? GetActiveProjectManager(this Job job) =>
+        job.GetActiveProjectManagers().FirstOrDefault();
 
-    [NotMapped]
-    public ICollection<PersonalInfo> AllProjectManagers =>
-        ProjectManagers?
-            .Select(pm => pm.PersonalInfo)
-            .ToList() ?? [];
+    public static IEnumerable<PersonalInfo> GetAllProjectManagers(this Job job) =>
+        job.ProjectManagers?.Select(pm => pm.PersonalInfo)
+        ?? [];
 
-    // Computed properties for easy access to site contacts
-    [NotMapped]
-    public ICollection<PersonalInfo> ActiveSiteContact =>
-        SiteContacts?
-            .Where(sc => sc.IsActive)
+    public static IEnumerable<PersonalInfo> GetActiveSiteContacts(this Job job) =>
+        job.SiteContacts?.Where(sc => sc.IsActive)
             .Select(sc => sc.PersonalInfo)
-            .ToList() ?? [];
+        ?? [];
 
-    [NotMapped]
-    public ICollection<PersonalInfo> AllSiteContacts =>
-        SiteContacts?
-            .Select(sc => sc.PersonalInfo)
-            .ToList() ?? [];
+    public static IEnumerable<PersonalInfo> GetAllSiteContacts(this Job job) =>
+        job.SiteContacts?.Select(sc => sc.PersonalInfo)
+        ?? [];
 
-    // Proctors that belong directly to this job (through LabTest)
-    [NotMapped]
-    public ICollection<Proctor> DirectProctors => LabTests?.SelectMany(lt => lt.Proctors).ToList() ?? [];
+    public static IEnumerable<Proctor> GetDirectProctors(this Job job) =>
+        job.LabTests?.SelectMany(lt => lt.Proctors)
+        ?? [];
 
-    // Proctors from other jobs that are being reused for this job
-    [NotMapped]
-    public ICollection<Proctor> ReusedProctors => ProctorAdditionalJobs?.Select(paj => paj.Proctor).ToList() ?? [];
+    public static IEnumerable<Proctor> GetReusedProctors(this Job job) =>
+        job.ProctorAdditionalJobs?.Select(paj => paj.Proctor)
+        ?? [];
 }
