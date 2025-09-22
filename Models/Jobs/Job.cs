@@ -59,3 +59,31 @@ public static class JobExtensions
         job.ProctorAdditionalJobs?.Select(paj => paj.Proctor)
         ?? [];
 }
+
+public class JobBaseDto
+{
+    public string JobNumber { get; set; } = string.Empty;
+    public string ClientName { get; set; } = string.Empty;
+    public string ProjectName { get; set; } = string.Empty;
+    public string SiteAddress { get; set; } = string.Empty;
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+}
+
+public class JobCreateDto : JobBaseDto { }
+public class JobUpdateDto : JobBaseDto { }
+public class JobReadDto : JobBaseDto
+{
+    public int Id { get; set; }
+
+        public JobReadDto(Job job)
+    {
+        Id = job.Id;
+        JobNumber = job.JobNumber;
+        ClientName = job.ClientName;
+        ProjectName = job.ProjectName;
+        SiteAddress = job.SiteAddress;
+        StartDate = job.StartDate;
+        EndDate = job.EndDate;
+    }
+}
