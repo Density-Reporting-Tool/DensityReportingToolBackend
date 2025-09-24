@@ -1,5 +1,6 @@
 using DensityReportingToolBackend.Data;
 using DensityReportingToolBackend.Models;
+using DensityReportingToolBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,10 +13,13 @@ namespace DensityReportingToolBackend.Controllers
         private readonly ILogger<JobsController> _logger;
         private readonly AppDbContext _dbContext;
 
+        private readonly JobService _jobService;
+
         public JobsController(ILogger<JobsController> logger, AppDbContext dbContext)
         {
             _logger = logger;
             _dbContext = dbContext;
+            _jobService = new JobService(dbContext);
         }
 
         /// <summary>
@@ -28,57 +32,8 @@ namespace DensityReportingToolBackend.Controllers
             try
             {
                 _logger.LogInformation("Retrieving all jobs for dashboard");
-
-                var jobs = await _dbContext.Jobs
-                    .Include(j => j.ProjectManagers)
-                        .ThenInclude(jpm => jpm.PersonalInfo)
-                    .Include(j => j.SiteContacts)
-                        .ThenInclude(jsc => jsc.PersonalInfo)
-                    .OrderByDescending(j => j.StartDate)
-                    .ThenBy(j => j.JobNumber)
-                    .ToListAsync();
-
-                var result = jobs.Select(job => new
-                {
-                    Id = job.Id,
-                    JobNumber = job.JobNumber,
-                    ClientName = job.ClientName,
-                    ProjectName = job.ProjectName,
-                    SiteAddress = job.SiteAddress,
-                    StartDate = job.StartDate,
-                    EndDate = job.EndDate,
-                    ProjectManagers = job.ProjectManagers?
-                        .Where(pm => pm.IsActive && pm.EndDate == null)
-                        .Select(pm => new
-                        {
-                            pm.PersonalInfo.Id,
-                            FirstName = pm.PersonalInfo.FirstName,
-                            LastName = pm.PersonalInfo.LastName,
-                            Email = pm.PersonalInfo.Email,
-                            PhoneNumber = pm.PersonalInfo.PhoneNumber
-                        }) ?? Enumerable.Empty<object>(),
-                    SiteContacts = job.SiteContacts?
-                        .Where(sc => sc.IsActive)
-                        .Select(sc => new
-                        {
-                            sc.PersonalInfo.Id,
-                            FirstName = sc.PersonalInfo.FirstName,
-                            LastName = sc.PersonalInfo.LastName,
-                            Email = sc.PersonalInfo.Email,
-                            PhoneNumber = sc.PersonalInfo.PhoneNumber,
-                            sc.Company,
-                            sc.Role,
-                            sc.IsPrimary
-                        }) ?? Enumerable.Empty<object>(),
-                    JobNotes = job.JobNotes?
-                        .Select(n => new
-                        {
-                            n.Id,
-                            n.Note,
-                            n.CreatedDate
-                        }) ?? Enumerable.Empty<object>()
-                }).ToList();
-
+                var jobs = await _jobService.ListJobs();
+                var result = jobs.Select(job => job.ToDto()).ToList();
                 _logger.LogInformation("Successfully retrieved {JobCount} jobs", result.Count);
                 return Ok(result);
             }
@@ -102,18 +57,8 @@ namespace DensityReportingToolBackend.Controllers
             try
             {
                 _logger.LogInformation("Retrieving job with number: {JobNumber}", jobNumber);
-                
-                var job = await _dbContext.Jobs
-                    .Include(j => j.ProjectManagers)
-                        .ThenInclude(jpm => jpm.PersonalInfo)
-                    .Include(j => j.SiteContacts)
-                        .ThenInclude(jsc => jsc.PersonalInfo)
-                    .Include(j => j.DistributionLists)
-                        .ThenInclude(dl => dl.DistributionMembers)
-                            .ThenInclude(dm => dm.PersonalInfo)
-                    .Include(j => j.Reports)
-                    .Include(j => j.JobNotes)
-                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+                var job = await _jobService.GetJobByNumber(jobNumber);
 
                 if (job == null)
                 {
@@ -124,76 +69,7 @@ namespace DensityReportingToolBackend.Controllers
                     });
                 }
 
-                // Return job information
-                var result = new
-                {
-                    Id = job.Id,
-                    JobNumber = job.JobNumber,
-                    ClientName = job.ClientName,
-                    ProjectName = job.ProjectName,
-                    SiteAddress = job.SiteAddress,
-                    StartDate = job.StartDate,
-                    EndDate = job.EndDate,
-                    ProjectManagers = job.ProjectManagers?
-                        .Where(pm => pm.IsActive && pm.EndDate == null)
-                        .Select(pm => new
-                        {
-                            pm.PersonalInfo.Id,
-                            FirstName = pm.PersonalInfo.FirstName,
-                            LastName = pm.PersonalInfo.LastName,
-                            Email = pm.PersonalInfo.Email,
-                            PhoneNumber = pm.PersonalInfo.PhoneNumber,
-                            pm.Notes,
-                            pm.StartDate
-                        }) ?? Enumerable.Empty<object>(),
-                    SiteContacts = job.SiteContacts?
-                        .Where(sc => sc.IsActive)
-                        .Select(sc => new
-                        {
-                            sc.PersonalInfo.Id,
-                            FirstName = sc.PersonalInfo.FirstName,
-                            LastName = sc.PersonalInfo.LastName,
-                            Email = sc.PersonalInfo.Email,
-                            PhoneNumber = sc.PersonalInfo.PhoneNumber,
-                            sc.Area,
-                            sc.Company,
-                            sc.Role,
-                            sc.IsPrimary,
-                            sc.Notes
-                        }) ?? Enumerable.Empty<object>(),
-                    DistributionLists = job.DistributionLists?
-                        .Select(dl => new
-                        {
-                            dl.Id,
-                            dl.Name,
-                            dl.Description,
-                            Members = dl.DistributionMembers?
-                                .Select(dm => new
-                                {
-                                    dm.PersonalInfo.Id,
-                                    FirstName = dm.PersonalInfo.FirstName,
-                                    LastName = dm.PersonalInfo.LastName,
-                                    Email = dm.PersonalInfo.Email
-                                }) ?? Enumerable.Empty<object>()
-                        }) ?? Enumerable.Empty<object>(),
-                    Reports = job.Reports?
-                        .Select(r => new
-                        {
-                            r.Id,
-                            r.ReportNumber,
-                            r.StartDate,
-                            r.SubmitDate,
-                            r.DistributeDate
-                        }) ?? Enumerable.Empty<object>(),
-                    JobNotes = job.JobNotes?
-                        .Select(n => new
-                        {
-                            n.Id,
-                            n.Note,
-                            n.CreatedDate
-                        }) ?? Enumerable.Empty<object>()
-                };
-
+                var result = job.ToDto();
                 _logger.LogInformation("Successfully retrieved job {JobNumber}", jobNumber);
                 return Ok(result);
             }
