@@ -1,9 +1,7 @@
 namespace DensityReportingToolBackend.Models;
 
-public class Job
+public class Job: ModelBaseWithDto<Job, JobReadDto>
 {
-    public int Id { get; set; }
-
     // Job number - can be numeric (e.g., "25482") or alphanumeric (e.g., "15827-A")
     public required string JobNumber { get; set; }
 
@@ -76,7 +74,11 @@ public class JobReadDto : JobBaseDto
 {
     public int Id { get; set; }
 
-        public JobReadDto(Job job)
+    public IEnumerable<ReportReadDto?> Reports { get; set; } = [];
+    public IEnumerable<JobProjectManagerReadDto?> ProjectManagers { get; set; } = [];
+    public IEnumerable<JobSiteContactReadDto?> SiteContacts { get; set; } = [];
+
+    public JobReadDto(Job job, HashSet<(Type, int)> visited)
     {
         Id = job.Id;
         JobNumber = job.JobNumber;
@@ -85,5 +87,10 @@ public class JobReadDto : JobBaseDto
         SiteAddress = job.SiteAddress;
         StartDate = job.StartDate;
         EndDate = job.EndDate;
+
+        // Null-safe mapping
+        Reports = job.Reports?.Select(r => r?.ToDTO()) ?? [];
+        ProjectManagers = job.ProjectManagers?.Select(pm => pm?.ToDto(visited)) ?? [];
+        SiteContacts = job.SiteContacts?.Select(sc => sc?.ToDto(visited)) ?? [];
     }
 }
