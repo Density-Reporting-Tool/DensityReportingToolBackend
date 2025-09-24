@@ -1,15 +1,13 @@
 namespace DensityReportingToolBackend.Models;
 
-public class Job
+public class Job: ModelBaseWithDto<Job, JobReadDto>
 {
-    public int Id { get; set; }
-    
     // Job number - can be numeric (e.g., "25482") or alphanumeric (e.g., "15827-A")
     public required string JobNumber { get; set; }
-    
+
     // Client name as a simple string
     public required string ClientName { get; set; }
-    
+
     public required string ProjectName { get; set; }
     public required string SiteAddress { get; set; }
 
@@ -25,44 +23,80 @@ public class Job
     public ICollection<DistributionList> DistributionLists { get; set; } = [];
     public ICollection<JobProjectManager> ProjectManagers { get; set; } = [];
     public ICollection<JobSiteContact> SiteContacts { get; set; } = [];
+}
 
-    // Computed properties for easy access to project managers
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public ICollection<PersonalInfo> ActiveProjectManagers => 
-        ProjectManagers?
+public static class JobExtensions
+{
+    public static IEnumerable<PersonalInfo> GetActiveProjectManagers(this Job job) =>
+        job.ProjectManagers?
             .Where(pm => pm.IsActive && pm.EndDate == null)
             .Select(pm => pm.PersonalInfo)
-            .ToList() ?? [];
+        ?? [];
 
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public PersonalInfo? ActiveProjectManager => 
-        ActiveProjectManagers.FirstOrDefault();
+    public static PersonalInfo? GetActiveProjectManager(this Job job) =>
+        job.GetActiveProjectManagers().FirstOrDefault();
 
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public ICollection<PersonalInfo> AllProjectManagers => 
-        ProjectManagers?
-            .Select(pm => pm.PersonalInfo)
-            .ToList() ?? [];
+    public static IEnumerable<PersonalInfo> GetAllProjectManagers(this Job job) =>
+        job.ProjectManagers?.Select(pm => pm.PersonalInfo)
+        ?? [];
 
-    // Computed properties for easy access to site contacts
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public ICollection<PersonalInfo> ActiveSiteContact => 
-        SiteContacts?
-            .Where(sc => sc.IsActive)
+    public static IEnumerable<PersonalInfo> GetActiveSiteContacts(this Job job) =>
+        job.SiteContacts?.Where(sc => sc.IsActive)
             .Select(sc => sc.PersonalInfo)
-            .ToList() ?? [];
+        ?? [];
 
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public ICollection<PersonalInfo> AllSiteContacts => 
-        SiteContacts?
-            .Select(sc => sc.PersonalInfo)
-            .ToList() ?? [];
+    public static IEnumerable<PersonalInfo> GetAllSiteContacts(this Job job) =>
+        job.SiteContacts?.Select(sc => sc.PersonalInfo)
+        ?? [];
 
-    // Proctors that belong directly to this job (through LabTest)
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public ICollection<Proctor> DirectProctors => LabTests?.SelectMany(lt => lt.Proctors).ToList() ?? [];
+    public static IEnumerable<Proctor> GetDirectProctors(this Job job) =>
+        job.LabTests?.SelectMany(lt => lt.Proctors)
+        ?? [];
 
-    // Proctors from other jobs that are being reused for this job
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public ICollection<Proctor> ReusedProctors => ProctorAdditionalJobs?.Select(paj => paj.Proctor).ToList() ?? [];
+    public static IEnumerable<Proctor> GetReusedProctors(this Job job) =>
+        job.ProctorAdditionalJobs?.Select(paj => paj.Proctor)
+        ?? [];
+}
+
+public class JobBaseDto
+{
+    public string JobNumber { get; set; } = string.Empty;
+    public string ClientName { get; set; } = string.Empty;
+    public string ProjectName { get; set; } = string.Empty;
+    public string SiteAddress { get; set; } = string.Empty;
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+
+    public IEnumerable<JobNoteReadDto?> JobNotes { get; set; } = [];
+}
+
+public class JobCreateDto : JobBaseDto
+{ 
+}
+public class JobUpdateDto : JobBaseDto
+{
+    public int Id { get; set; }    
+}
+public class JobReadDto : JobBaseDto
+{
+    public int Id { get; set; }
+    public IEnumerable<ReportReadDto?> Reports { get; set; } = [];
+    public IEnumerable<JobProjectManagerReadDto?> ProjectManagers { get; set; } = [];
+    public IEnumerable<JobSiteContactReadDto?> SiteContacts { get; set; } = [];
+
+    public JobReadDto(Job job, HashSet<(Type, int)> visited)
+    {
+        Id = job.Id;
+        JobNumber = job.JobNumber;
+        ClientName = job.ClientName;
+        ProjectName = job.ProjectName;
+        SiteAddress = job.SiteAddress;
+        StartDate = job.StartDate;
+        EndDate = job.EndDate;
+
+        // Null-safe mapping
+        Reports = job.Reports?.Select(r => r?.ToDTO()) ?? [];
+        ProjectManagers = job.ProjectManagers?.Select(pm => pm?.ToDto(visited)) ?? [];
+        SiteContacts = job.SiteContacts?.Select(sc => sc?.ToDto(visited)) ?? [];
+    }
 }
