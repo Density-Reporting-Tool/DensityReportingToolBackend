@@ -66,17 +66,20 @@ public class JobBaseDto
     public string SiteAddress { get; set; } = string.Empty;
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
+
+    public IEnumerable<JobNoteReadDto?> JobNotes { get; set; } = [];
 }
 
 public class JobCreateDto : JobBaseDto
 { 
-    public IEnumerable<JobNoteReadDto?> JobNotes { get; set; } = [];
 }
-public class JobUpdateDto : JobBaseDto { }
+public class JobUpdateDto : JobBaseDto
+{
+    public int Id { get; set; }    
+}
 public class JobReadDto : JobBaseDto
 {
     public int Id { get; set; }
-    public IEnumerable<JobNoteReadDto?> JobNotes { get; set; } = [];
     public IEnumerable<ReportReadDto?> Reports { get; set; } = [];
     public IEnumerable<JobProjectManagerReadDto?> ProjectManagers { get; set; } = [];
     public IEnumerable<JobSiteContactReadDto?> SiteContacts { get; set; } = [];

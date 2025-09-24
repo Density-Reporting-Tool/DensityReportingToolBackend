@@ -25,4 +25,14 @@ public static class JobValidator
 
         return result;
     }
+
+    public static ValidationResultDto Validate(JobUpdateDto dto)
+    {
+        var result = new ValidationResultDto();
+
+        if (dto.StartDate != null && dto.EndDate != null && dto.EndDate < dto.StartDate)
+            result.AddError(nameof(dto.EndDate), "End date cannot be before start date");
+
+        return result;
+    }
 }

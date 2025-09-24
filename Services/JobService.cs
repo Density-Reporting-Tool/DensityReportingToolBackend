@@ -41,7 +41,87 @@ public class JobService(AppDbContext dbContext)
         return await dbContext.Jobs
             .Where(j => j.JobNumber.Contains(jobNumber))
             .OrderBy(j => j.JobNumber)
-            .Take(limit)                           
+            .Take(limit)
             .ToListAsync();
     }
+
+public async Task<Job> CreateJob(JobCreateDto dto)
+{
+    var job = new Job
+    {
+        JobNumber = dto.JobNumber,
+        ClientName = dto.ClientName,
+        ProjectName = dto.ProjectName,
+        SiteAddress = dto.SiteAddress,
+        StartDate = dto.StartDate,
+        EndDate = dto.EndDate
+    };
+    if (dto.JobNotes != null)
+    {
+        foreach (var noteDto in dto.JobNotes)
+        {
+            if (noteDto != null)
+            {
+                job.JobNotes.Add(new JobNote
+                {
+                    JobId = job.Id,
+                    Note = noteDto.Note,
+                    CreatedDate = noteDto.CreatedDate != default ? noteDto.CreatedDate : DateTime.UtcNow
+                });
+            }
+        }
+    }
+
+    dbContext.Jobs.Add(job);
+    await dbContext.SaveChangesAsync();
+
+    return job;
+}
+
+public async Task<Job> UpdateJob(int jobId, JobUpdateDto dto)
+{
+    var job = await dbContext.Jobs
+        .Include(j => j.JobNotes)
+        .FirstOrDefaultAsync(j => j.Id == jobId);
+
+    if (job == null)
+        throw new KeyNotFoundException($"Job with ID {jobId} not found.");
+
+    if (!string.IsNullOrWhiteSpace(dto.JobNumber))
+        job.JobNumber = dto.JobNumber;
+
+    if (!string.IsNullOrWhiteSpace(dto.ClientName))
+        job.ClientName = dto.ClientName;
+
+    if (!string.IsNullOrWhiteSpace(dto.ProjectName))
+        job.ProjectName = dto.ProjectName;
+
+    if (!string.IsNullOrWhiteSpace(dto.SiteAddress))
+        job.SiteAddress = dto.SiteAddress;
+
+    if (dto.StartDate.HasValue)
+        job.StartDate = dto.StartDate;
+
+    if (dto.EndDate.HasValue)
+        job.EndDate = dto.EndDate;
+
+    if (dto.JobNotes != null)
+    {
+        foreach (var noteDto in dto.JobNotes)
+        {
+            if (noteDto != null && !string.IsNullOrWhiteSpace(noteDto.Note))
+            {
+                job.JobNotes.Add(new JobNote
+                {
+                    JobId = job.Id,
+                    Note = noteDto.Note,
+                    CreatedDate = noteDto.CreatedDate != default ? noteDto.CreatedDate : DateTime.UtcNow
+                });
+            }
+        }
+    }
+
+    await dbContext.SaveChangesAsync();
+    return job;
+}
 }

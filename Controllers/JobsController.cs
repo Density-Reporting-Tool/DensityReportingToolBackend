@@ -120,38 +120,14 @@ namespace DensityReportingToolBackend.Controllers
                 }
 
                 // Create new job
-                var newJob = new Job
-                {
-                    JobNumber = jobDto.JobNumber,
-                    ClientName = jobDto.ClientName,
-                    ProjectName = jobDto.ProjectName,
-                    SiteAddress = jobDto.SiteAddress,
-                    StartDate = jobDto.StartDate,
-                    EndDate = jobDto.EndDate
-                };
-
-                _dbContext.Jobs.Add(newJob);
-                await _dbContext.SaveChangesAsync();
+                var newJob = await _jobService.CreateJob(jobDto);
 
                 // TODO Add job note if provided
 
                 _logger.LogInformation("Successfully created job with ID: {JobId} and number: {JobNumber}",
                     newJob.Id, newJob.JobNumber);
 
-                return CreatedAtAction(nameof(GetJob), new { jobNumber = newJob.JobNumber }, new
-                {
-                    Id = newJob.Id,
-                    JobNumber = newJob.JobNumber,
-                    ClientName = newJob.ClientName,
-                    Project = new
-                    {
-                        newJob.ProjectName,
-                        newJob.SiteAddress,
-                        newJob.StartDate,
-                        newJob.EndDate
-                    },
-                    Message = "Job created successfully"
-                });
+                return CreatedAtAction(nameof(GetJob), new { jobNumber = newJob.JobNumber }, newJob.ToDto());
             }
             catch (Exception ex)
             {
@@ -159,6 +135,35 @@ namespace DensityReportingToolBackend.Controllers
                 return StatusCode(500, new
                 {
                     message = "An error occurred while creating the job"
+                });
+            }
+        }
+
+        [HttpPut("{jobId}")]
+        public async Task<ActionResult<object>> UpdateJob(int jobId, [FromBody] JobUpdateDto jobDto)
+        {
+            try
+            {
+                var validation = JobValidator.Validate(jobDto);
+                if (!validation.IsValid)
+                    return BadRequest(new { errors = validation.Errors });
+
+                var updatedJob = await _jobService.UpdateJob(jobId, jobDto);
+
+                if (updatedJob == null)
+                    return NotFound(new { message = $"Job with ID {jobId} not found" });
+
+                var visited = new HashSet<(Type, int)>();
+                var jobReadDto = new JobReadDto(updatedJob, visited);
+
+                return Ok(jobReadDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating job with number: {JobNumber}", jobDto.JobNumber);
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while updating the job"
                 });
             }
         }
