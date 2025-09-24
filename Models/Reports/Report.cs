@@ -66,7 +66,7 @@ public class ReportReadDto : ReportBaseDto
         Id = report.Id;
         JobId = report.JobId;
         EmployeeId = report.EmployeeId;
-        ReviewerId = report.ReviewerId;
+        ReviewerId = report.ReviewerId ?? 0;
 
         ReportNumber = report.ReportNumber;
         StartDate = report.StartDate;
@@ -74,7 +74,7 @@ public class ReportReadDto : ReportBaseDto
         DistributeDate = report.DistributeDate;
         DistributionListId = report.DistributionListId;
 
-        EmployeeName = report.Employee?.PersonalInfo?.FirstName ?? string.Empty;
-        ReviewerName = report.Reviewer?.PersonalInfo?.FirstName ?? string.Empty;
+        EmployeeName = report.Employee?.FirstName ?? string.Empty;
+        ReviewerName = report.Reviewer?.FirstName ?? string.Empty;
     }
 }

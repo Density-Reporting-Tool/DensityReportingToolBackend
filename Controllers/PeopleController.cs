@@ -97,7 +97,7 @@ namespace DensityReportingToolBackend.Controllers
         {
             var people = await _dbContext.PersonalInfos
                 .Include(p => p.Employee)
-                .ThenInclude(e => e.Role)
+                .ThenInclude(e => e!.Role)
                 .Select(p => new
                 {
                     p.Id,
