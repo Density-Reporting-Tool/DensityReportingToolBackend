@@ -35,4 +35,13 @@ public class JobService(AppDbContext dbContext)
                     .Include(j => j.JobNotes)
                     .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
     }
+
+    public async Task<IEnumerable<Job>> SearchJobsByJobNumber(string jobNumber, int limit = 10)
+    {
+        return await dbContext.Jobs
+            .Where(j => j.JobNumber.Contains(jobNumber))
+            .OrderBy(j => j.JobNumber)
+            .Take(limit)                           
+            .ToListAsync();
+    }
 }
