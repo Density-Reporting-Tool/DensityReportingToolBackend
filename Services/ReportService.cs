@@ -1,0 +1,400 @@
+using DensityReportingToolBackend.Data;
+using DensityReportingToolBackend.Models;
+using DensityReportingToolBackend.Models.DTOs;
+using Microsoft.EntityFrameworkCore;
+
+namespace DensityReportingToolBackend.Services
+{
+    public class ReportService : IReportService
+    {
+        private readonly AppDbContext _dbContext;
+        private readonly ILogger<ReportService> _logger;
+
+        public ReportService(AppDbContext dbContext, ILogger<ReportService> logger)
+        {
+            _dbContext = dbContext;
+            _logger = logger;
+        }
+
+        public async Task<ReportCreateResponse> CreateReportAsync(CreateReportRequest request)
+        {
+            using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            
+            try
+            {
+                _logger.LogInformation("Creating report for job ID: {JobId}", request.JobId);
+
+                // 1. Validate and find job
+                var job = await FindJobAsync(request.JobId);
+                
+                // 2. Validate and find employee
+                var employee = await FindEmployeeAsync(request.EmployeeId);
+                
+                // 3. Validate and find reviewer (if provided)
+                PersonalInfo? reviewer = null;
+                if (request.ReviewerId.HasValue)
+                {
+                    reviewer = await FindReviewerAsync(request.ReviewerId.Value);
+                }
+                
+                // 4. Get next report number for this job
+                var nextReportNumber = await GetNextReportNumberAsync(request.JobId);
+                
+                // 5. Create new report
+                var newReport = await CreateReportEntityAsync(request, nextReportNumber);
+                
+                // 6. Create memo if provided
+                if (request.Memo != null)
+                {
+                    await CreateReportMemoAsync(newReport.Id, request.Memo);
+                }
+                
+                await transaction.CommitAsync();
+                
+                _logger.LogInformation("Successfully created report with ID: {ReportId} and number: {ReportNumber}", 
+                    newReport.Id, newReport.ReportNumber);
+
+                return MapToCreateResponse(newReport, job, employee, reviewer);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Failed to create report for job: {JobId}", request.JobId);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<ReportListByJobResponse>> GetReportsByJobAsync(string jobNumber)
+        {
+            try
+            {
+                _logger.LogInformation("Getting reports for job: {JobNumber}", jobNumber);
+
+                var reports = await _dbContext.Reports
+                    .Include(r => r.Job)
+                    .Include(r => r.DensityTests)
+                    .Include(r => r.Photos)
+                    .Include(r => r.Memos)
+                    .Where(r => r.Job.JobNumber == jobNumber)
+                    .OrderByDescending(r => r.ReportNumber) // Newest reports first
+                    .ToListAsync();
+
+                var result = new List<ReportListByJobResponse>();
+
+                foreach (var report in reports)
+                {
+                    // Get employee info
+                    var employee = await _dbContext.PersonalInfos
+                        .FirstOrDefaultAsync(p => p.Id == report.EmployeeId && p.Company == "GeoPacific");
+
+                    // Get reviewer info (if assigned)
+                    PersonalInfo? reviewer = null;
+                    if (report.ReviewerId > 0)
+                    {
+                        reviewer = await _dbContext.PersonalInfos
+                            .FirstOrDefaultAsync(p => p.Id == report.ReviewerId && p.Company == "GeoPacific");
+                    }
+
+                    result.Add(MapToListByJobResponse(report, employee, reviewer));
+                }
+
+                _logger.LogInformation("Successfully retrieved {ReportCount} reports for job {JobNumber}", result.Count, jobNumber);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting reports for job: {JobNumber}", jobNumber);
+                throw;
+            }
+        }
+
+        public async Task<ReportDetailResponse?> GetReportAsync(int reportId)
+        {
+            try
+            {
+                _logger.LogInformation("Getting report with ID: {ReportId}", reportId);
+
+                var report = await _dbContext.Reports
+                    .Include(r => r.Job)
+                    .Include(r => r.Employee)
+                    .Include(r => r.Reviewer)
+                    .Include(r => r.DensityTests)
+                    .Include(r => r.Photos)
+                    .Include(r => r.Memos)
+                    .FirstOrDefaultAsync(r => r.Id == reportId);
+
+                if (report == null)
+                {
+                    _logger.LogWarning("Report with ID {ReportId} not found", reportId);
+                    return null;
+                }
+
+                _logger.LogInformation("Successfully retrieved report {ReportId}", reportId);
+                return MapToDetailResponse(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting report with ID: {ReportId}", reportId);
+                throw;
+            }
+        }
+
+        #region Private Helper Methods
+
+        private async Task<Job> FindJobAsync(int jobId)
+        {
+            var job = await _dbContext.Jobs.FindAsync(jobId);
+            
+            if (job == null)
+            {
+                _logger.LogWarning("Job with ID {JobId} does not exist", jobId);
+                throw new ArgumentException($"Job with ID {jobId} not found");
+            }
+            
+            _logger.LogInformation("Found existing job with ID: {JobId} and number: {JobNumber}", 
+                job.Id, job.JobNumber);
+            
+            return job;
+        }
+
+        private async Task<PersonalInfo> FindEmployeeAsync(int employeeId)
+        {
+            var employee = await _dbContext.PersonalInfos
+                .FirstOrDefaultAsync(e => e.Id == employeeId && e.Company == "GeoPacific");
+                
+            if (employee == null)
+            {
+                _logger.LogWarning("GeoPacific employee with ID {EmployeeId} not found", employeeId);
+                throw new ArgumentException($"GeoPacific employee with ID {employeeId} not found");
+            }
+            
+            _logger.LogInformation("Found GeoPacific employee: {EmployeeId} - {FirstName} {LastName}", 
+                employee.Id, employee.FirstName, employee.LastName);
+            
+            return employee;
+        }
+
+        private async Task<PersonalInfo> FindReviewerAsync(int reviewerId)
+        {
+            var reviewer = await _dbContext.PersonalInfos
+                .FirstOrDefaultAsync(e => e.Id == reviewerId && e.Company == "GeoPacific");
+                
+            if (reviewer == null)
+            {
+                _logger.LogWarning("GeoPacific reviewer with ID {ReviewerId} not found", reviewerId);
+                throw new ArgumentException($"GeoPacific reviewer with ID {reviewerId} not found");
+            }
+            
+            _logger.LogInformation("Found GeoPacific reviewer: {ReviewerId} - {FirstName} {LastName}", 
+                reviewer.Id, reviewer.FirstName, reviewer.LastName);
+            
+            return reviewer;
+        }
+
+        private async Task<int> GetNextReportNumberAsync(int jobId)
+        {
+            var maxReportNumber = await _dbContext.Reports
+                .Where(r => r.JobId == jobId)
+                .MaxAsync(r => (int?)r.ReportNumber) ?? 0;
+                
+            var nextNumber = maxReportNumber + 1;
+            _logger.LogInformation("Next report number for job {JobId}: {ReportNumber}", jobId, nextNumber);
+            
+            return nextNumber;
+        }
+
+        private async Task<Report> CreateReportEntityAsync(CreateReportRequest request, int reportNumber)
+        {
+            var newReport = new Report
+            {
+                JobId = request.JobId,
+                EmployeeId = request.EmployeeId,
+                ReviewerId = request.ReviewerId, // Now properly nullable
+                ReportNumber = reportNumber,
+                StartDate = request.StartDate ?? DateTime.UtcNow,
+                SubmitDate = request.SubmitDate,
+                DistributeDate = request.DistributeDate,
+                DistributionListId = request.DistributionListId
+            };
+            
+            _dbContext.Reports.Add(newReport);
+            await _dbContext.SaveChangesAsync();
+            
+            _logger.LogInformation("Created report with ID: {ReportId} and number: {ReportNumber}", 
+                newReport.Id, newReport.ReportNumber);
+            
+            return newReport;
+        }
+
+        private async Task CreateReportMemoAsync(int reportId, ReportMemoRequest memoRequest)
+        {
+            var memo = new ReportMemo
+            {
+                ReportId = reportId,
+                Purpose = memoRequest.Purpose,
+                CommentsAndObservations = memoRequest.CommentsAndObservations,
+                Conclusion = memoRequest.Conclusion,
+                CreatedDate = DateTime.UtcNow
+            };
+
+            _dbContext.ReportMemos.Add(memo);
+            await _dbContext.SaveChangesAsync();
+
+            _logger.LogInformation("Successfully created memo for report ID: {ReportId}", reportId);
+        }
+
+        private static ReportCreateResponse MapToCreateResponse(
+            Report report, 
+            Job job, 
+            PersonalInfo employee, 
+            PersonalInfo? reviewer)
+        {
+            return new ReportCreateResponse
+            {
+                Id = report.Id.ToString(),
+                Message = "Report created successfully",
+                Report = new ReportDataResponse
+                {
+                    Id = report.Id,
+                    JobId = report.JobId,
+                    ReportNumber = report.ReportNumber,
+                    StartDate = report.StartDate,
+                    SubmitDate = report.SubmitDate,
+                    DistributeDate = report.DistributeDate,
+                    Employee = new EmployeeInfo
+                    {
+                        Id = employee.Id,
+                        FirstName = employee.FirstName,
+                        LastName = employee.LastName,
+                        Email = employee.Email,
+                        PhoneNumber = employee.PhoneNumber
+                    },
+                    Reviewer = reviewer != null ? new EmployeeInfo
+                    {
+                        Id = reviewer.Id,
+                        FirstName = reviewer.FirstName,
+                        LastName = reviewer.LastName,
+                        Email = reviewer.Email,
+                        PhoneNumber = reviewer.PhoneNumber
+                    } : new EmployeeInfo(), // Empty reviewer info if none assigned
+                    Job = new JobInfo
+                    {
+                        Id = job.Id,
+                        JobNumber = job.JobNumber,
+                        ClientName = job.ClientName,
+                        ProjectName = job.ProjectName
+                    },
+                    DistributionListId = report.DistributionListId
+                }
+            };
+        }
+
+        private static ReportListByJobResponse MapToListByJobResponse(
+            Report report, 
+            PersonalInfo? employee, 
+            PersonalInfo? reviewer)
+        {
+            return new ReportListByJobResponse
+            {
+                Id = report.Id,
+                JobId = report.JobId,
+                ReportNumber = report.ReportNumber,
+                StartDate = report.StartDate,
+                SubmitDate = report.SubmitDate,
+                DistributeDate = report.DistributeDate,
+                Employee = employee != null ? new EmployeeInfo
+                {
+                    Id = employee.Id,
+                    FirstName = employee.FirstName,
+                    LastName = employee.LastName,
+                    Email = employee.Email,
+                    PhoneNumber = employee.PhoneNumber
+                } : new EmployeeInfo(),
+                Reviewer = reviewer != null ? new EmployeeInfo
+                {
+                    Id = reviewer.Id,
+                    FirstName = reviewer.FirstName,
+                    LastName = reviewer.LastName,
+                    Email = reviewer.Email,
+                    PhoneNumber = reviewer.PhoneNumber
+                } : new EmployeeInfo(),
+                DensityTestsCount = report.DensityTests.Count,
+                PhotosCount = report.Photos.Count,
+                MemosCount = report.Memos.Count,
+                DistributionListId = report.DistributionListId
+            };
+        }
+
+        private static ReportDetailResponse MapToDetailResponse(Report report)
+        {
+            return new ReportDetailResponse
+            {
+                Id = report.Id,
+                JobId = report.JobId,
+                Job = new JobInfo
+                {
+                    Id = report.Job.Id,
+                    JobNumber = report.Job.JobNumber,
+                    ClientName = report.Job.ClientName,
+                    ProjectName = report.Job.ProjectName
+                },
+                ReportNumber = report.ReportNumber,
+                StartDate = report.StartDate,
+                SubmitDate = report.SubmitDate,
+                DistributeDate = report.DistributeDate,
+                Employee = new EmployeeInfo
+                {
+                    Id = report.Employee.Id,
+                    FirstName = report.Employee.FirstName,
+                    LastName = report.Employee.LastName,
+                    Email = report.Employee.Email,
+                    PhoneNumber = report.Employee.PhoneNumber
+                },
+                Reviewer = report.Reviewer != null ? new EmployeeInfo
+                {
+                    Id = report.Reviewer.Id,
+                    FirstName = report.Reviewer.FirstName,
+                    LastName = report.Reviewer.LastName,
+                    Email = report.Reviewer.Email,
+                    PhoneNumber = report.Reviewer.PhoneNumber
+                } : null,
+                DensityTests = report.DensityTests.Select(dt => new DensityTestInfo
+                {
+                    Id = dt.Id,
+                    TestArea = dt.TestArea,
+                    Location = dt.Location,
+                    ElevationReference = dt.ElevationReference.ToString(),
+                    ElevationValue = dt.ElevationValue ?? 0,
+                    ElevationUnit = dt.ElevationUnit.ToString(),
+                    CompactionSpecification = dt.CompactionSpecification ?? 0,
+                    CompactionSpecificationUnit = dt.CompactionSpecificationUnit.ToString(),
+                    DensityValue = dt.DensityValue ?? 0,
+                    MoistureValue = dt.MoistureValue ?? 0,
+                    CreatedDate = dt.CreatedDate ?? DateTime.UtcNow
+                }),
+                Photos = report.Photos.Select(p => new PhotoInfo
+                {
+                    Id = p.Id,
+                    Code = p.Code,
+                    Url = p.Url,
+                    Description = p.Description,
+                    Latitude = p.Latitude,
+                    Longitude = p.Longitude,
+                    GpsAccuracyMeters = p.GpsAccuracyMeters
+                }),
+                Memos = report.Memos.Select(m => new MemoInfo
+                {
+                    Id = m.Id,
+                    Purpose = m.Purpose,
+                    CommentsAndObservations = m.CommentsAndObservations,
+                    Conclusion = m.Conclusion,
+                    CreatedDate = m.CreatedDate ?? DateTime.UtcNow,
+                    UpdatedDate = m.UpdatedDate
+                }),
+                DistributionListId = report.DistributionListId
+            };
+        }
+
+        #endregion
+    }
+}

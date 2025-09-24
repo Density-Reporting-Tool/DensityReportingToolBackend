@@ -3,6 +3,7 @@ using System;
 using DensityReportingToolBackend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DensityReportingToolBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250917200200_AddProctorAdditionalFields")]
+    partial class AddProctorAdditionalFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -586,7 +589,7 @@ namespace DensityReportingToolBackend.Migrations
                     b.Property<int>("ReportNumber")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("ReviewerId")
+                    b.Property<int>("ReviewerId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("StartDate")
@@ -1038,7 +1041,7 @@ namespace DensityReportingToolBackend.Migrations
                         .HasForeignKey("DistributionListId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("DensityReportingToolBackend.Models.PersonalInfo", "Employee")
+                    b.HasOne("DensityReportingToolBackend.Models.GeoPacificEmployee", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1050,9 +1053,11 @@ namespace DensityReportingToolBackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DensityReportingToolBackend.Models.PersonalInfo", "Reviewer")
+                    b.HasOne("DensityReportingToolBackend.Models.GeoPacificEmployee", "Reviewer")
                         .WithMany()
-                        .HasForeignKey("ReviewerId");
+                        .HasForeignKey("ReviewerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("DistributionList");
 
