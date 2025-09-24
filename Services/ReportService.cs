@@ -16,6 +16,129 @@ namespace DensityReportingToolBackend.Services
             _logger = logger;
         }
 
+        public async Task<IEnumerable<Report>> ListReports()
+        {
+            return await _dbContext.Reports
+                        .Include(r => r.Job)
+                        .Include(r => r.Employee)
+                        .Include(r => r.Reviewer)
+                        .Include(r => r.DensityTests)
+                        .Include(r => r.Photos)
+                        .Include(r => r.Memos)
+                        .OrderByDescending(r => r.StartDate)
+                        .ThenBy(r => r.ReportNumber)
+                        .ToListAsync();
+        }
+
+        public async Task<Report?> GetReportById(int reportId)
+        {
+            return await _dbContext.Reports
+                        .Include(r => r.Job)
+                        .Include(r => r.Employee)
+                        .Include(r => r.Reviewer)
+                        .Include(r => r.DensityTests)
+                        .Include(r => r.Photos)
+                        .Include(r => r.Memos)
+                        .Include(r => r.DistributionList)
+                        .FirstOrDefaultAsync(r => r.Id == reportId);
+        }
+
+        public async Task<Report?> GetReportByNumber(int jobId, int reportNumber)
+        {
+            return await _dbContext.Reports
+                        .Include(r => r.Job)
+                        .Include(r => r.Employee)
+                        .Include(r => r.Reviewer)
+                        .Include(r => r.DensityTests)
+                        .Include(r => r.Photos)
+                        .Include(r => r.Memos)
+                        .Include(r => r.DistributionList)
+                        .FirstOrDefaultAsync(r => r.JobId == jobId && r.ReportNumber == reportNumber);
+        }
+
+        public async Task<IEnumerable<Report>> SearchReportsByJobNumber(string jobNumber, int limit = 10)
+        {
+            return await _dbContext.Reports
+                .Include(r => r.Job)
+                .Include(r => r.Employee)
+                .Where(r => r.Job.JobNumber.Contains(jobNumber))
+                .OrderByDescending(r => r.StartDate)
+                .ThenBy(r => r.ReportNumber)
+                .Take(limit)
+                .ToListAsync();
+        }
+
+        public async Task<Report> CreateReport(ReportCreateDto dto)
+        {
+            // Get next report number for this job
+            var nextReportNumber = await GetNextReportNumberAsync(dto.JobId);
+
+            var report = new Report
+            {
+                JobId = dto.JobId,
+                EmployeeId = dto.EmployeeId,
+                ReviewerId = dto.ReviewerId,
+                ReportNumber = nextReportNumber,
+                StartDate = dto.StartDate,
+                SubmitDate = dto.SubmitDate,
+                DistributeDate = dto.DistributeDate,
+                DistributionListId = dto.DistributionListId
+            };
+
+            _dbContext.Reports.Add(report);
+            await _dbContext.SaveChangesAsync();
+
+            return report;
+        }
+
+        public async Task<Report> UpdateReport(int reportId, ReportUpdateDto dto)
+        {
+            var report = await _dbContext.Reports
+                .FirstOrDefaultAsync(r => r.Id == reportId);
+
+            if (report == null)
+                throw new KeyNotFoundException($"Report with ID {reportId} not found.");
+
+            if (dto.JobId > 0)
+                report.JobId = dto.JobId;
+
+            if (dto.EmployeeId > 0)
+                report.EmployeeId = dto.EmployeeId;
+
+            if (dto.ReviewerId.HasValue)
+                report.ReviewerId = dto.ReviewerId;
+
+            if (dto.ReportNumber > 0)
+                report.ReportNumber = dto.ReportNumber;
+
+            if (dto.StartDate.HasValue)
+                report.StartDate = dto.StartDate;
+
+            if (dto.SubmitDate.HasValue)
+                report.SubmitDate = dto.SubmitDate;
+
+            if (dto.DistributeDate.HasValue)
+                report.DistributeDate = dto.DistributeDate;
+
+            if (dto.DistributionListId.HasValue)
+                report.DistributionListId = dto.DistributionListId;
+
+            await _dbContext.SaveChangesAsync();
+            return report;
+        }
+
+        private async Task<int> GetNextReportNumberAsync(int jobId)
+        {
+            var maxReportNumber = await _dbContext.Reports
+                .Where(r => r.JobId == jobId)
+                .MaxAsync(r => (int?)r.ReportNumber) ?? 0;
+                
+            var nextNumber = maxReportNumber + 1;
+            _logger.LogInformation("Next report number for job {JobId}: {ReportNumber}", jobId, nextNumber);
+            
+            return nextNumber;
+        }
+
         public async Task<ReportCreateResponse> CreateReportAsync(CreateReportRequest request)
         {
             using var transaction = await _dbContext.Database.BeginTransactionAsync();

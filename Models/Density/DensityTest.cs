@@ -20,10 +20,8 @@ public enum ElevationReference
     BottomOfLift            // Bottom of a compacted lift
 }
 
-public class DensityTest
+public class DensityTest: ModelBaseWithDto<DensityTest, DensityTestReadDto>
 {
-    public int Id { get; set; }
-
     public int ProctorId { get; set; }
     public Proctor Proctor { get; set; } = null!;
 
@@ -55,4 +53,57 @@ public class DensityTest
     public DateTime? LastEditDate { get; set; }
 
     public ICollection<DensityTestComment> Comments { get; set; } = [];
+}
+
+public class DensityTestBaseDto
+{
+    public int ProctorId { get; set; }
+    public int ReportId { get; set; }
+    public string? TestArea { get; set; }
+    public string? Location { get; set; }
+    public ElevationReference? ElevationReference { get; set; }
+    public double? ElevationValue { get; set; }
+    public ElevationUnit? ElevationUnit { get; set; }
+    public float? CorrectedOversizePercentage { get; set; }
+    public int? ProbeDepth { get; set; }
+    public ProbeDepthUnit? ProbeDepthUnit { get; set; }
+    public double? CompactionSpecification { get; set; }
+    public CompactionSpecificationUnit? CompactionSpecificationUnit { get; set; }
+    public double? DensityValue { get; set; }
+    public double? MoistureValue { get; set; }
+}
+
+public class DensityTestCreateDto : DensityTestBaseDto { }
+
+public class DensityTestUpdateDto : DensityTestBaseDto
+{
+    public int Id { get; set; }
+}
+
+public class DensityTestReadDto : DensityTestBaseDto
+{
+    public int Id { get; set; }
+    public DateTime? CreatedDate { get; set; }
+    public DateTime? LastEditDate { get; set; }
+
+    public DensityTestReadDto(DensityTest densityTest, HashSet<(Type, int)> visited)
+    {
+        Id = densityTest.Id;
+        ProctorId = densityTest.ProctorId;
+        ReportId = densityTest.ReportId;
+        TestArea = densityTest.TestArea;
+        Location = densityTest.Location;
+        ElevationReference = densityTest.ElevationReference;
+        ElevationValue = densityTest.ElevationValue;
+        ElevationUnit = densityTest.ElevationUnit;
+        CorrectedOversizePercentage = densityTest.CorrectedOversizePercentage;
+        ProbeDepth = densityTest.ProbeDepth;
+        ProbeDepthUnit = densityTest.ProbeDepthUnit;
+        CompactionSpecification = densityTest.CompactionSpecification;
+        CompactionSpecificationUnit = densityTest.CompactionSpecificationUnit;
+        DensityValue = densityTest.DensityValue;
+        MoistureValue = densityTest.MoistureValue;
+        CreatedDate = densityTest.CreatedDate;
+        LastEditDate = densityTest.LastEditDate;
+    }
 }
