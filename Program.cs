@@ -20,11 +20,22 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5173", 
-                "http://localhost:3000",
-                "https://density-reporting-tool-frontend-2ue6fw1zs.vercel.app"
-              )
+        var allowedOrigins = new List<string>
+        {
+            "http://localhost:5173",  // Vite dev server
+            "http://localhost:3000",  // Create React App dev server
+            "https://density-reporting-tool-frontend-2ue6fw1zs.vercel.app",  // Vercel deployment
+            "https://drt-ui-lrelh.ondigitalocean.app"  // DigitalOcean deployment
+        };
+
+        // Add any additional origins from configuration
+        var additionalOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+        if (additionalOrigins != null)
+        {
+            allowedOrigins.AddRange(additionalOrigins);
+        }
+
+        policy.WithOrigins(allowedOrigins.ToArray())
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
