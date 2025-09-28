@@ -9,6 +9,142 @@ namespace DensityReportingToolBackend.Services
     {
         private readonly AppDbContext dbContext = dbContext;
 
+        public async Task<IEnumerable<Proctor>> ListProctors()
+        {
+            return await dbContext.Proctors
+                        .Include(p => p.LabTest)
+                            .ThenInclude(lt => lt.Job)
+                        .Include(p => p.ProctorType)
+                        .Include(p => p.AdditionalJobs)
+                            .ThenInclude(paj => paj.Job)
+                        .OrderByDescending(p => p.DateTested)
+                        .ThenBy(p => p.ProctorID)
+                        .ToListAsync();
+        }
+
+        public async Task<Proctor?> GetProctorById(int proctorId)
+        {
+            return await dbContext.Proctors
+                        .Include(p => p.LabTest)
+                            .ThenInclude(lt => lt.Job)
+                        .Include(p => p.ProctorType)
+                        .Include(p => p.AdditionalJobs)
+                            .ThenInclude(paj => paj.Job)
+                        .Include(p => p.DensityTests)
+                        .FirstOrDefaultAsync(p => p.Id == proctorId);
+        }
+
+        public async Task<IEnumerable<Proctor>> SearchProctorsByJobNumber(string jobNumber, int limit = 10)
+        {
+            return await dbContext.Proctors
+                .Include(p => p.LabTest)
+                    .ThenInclude(lt => lt.Job)
+                .Include(p => p.ProctorType)
+                .Where(p => p.LabTest.Job.JobNumber.Contains(jobNumber))
+                .OrderByDescending(p => p.DateTested)
+                .ThenBy(p => p.ProctorID)
+                .Take(limit)
+                .ToListAsync();
+        }
+
+        public async Task<Proctor> CreateProctor(ProctorCreateDto dto)
+        {
+            // Find the job first
+            var job = await dbContext.Jobs.FirstOrDefaultAsync(j => j.JobNumber == dto.JobNumber);
+            if (job == null)
+                throw new ArgumentException($"Job with number '{dto.JobNumber}' does not exist.");
+
+            // Find or create lab test
+            var labTest = await dbContext.LabTests
+                .FirstOrDefaultAsync(lt => lt.JobId == job.Id && lt.MaterialType == dto.MaterialType);
+            
+            if (labTest == null)
+            {
+                labTest = new LabTest
+                {
+                    JobId = job.Id,
+                    MaterialType = dto.MaterialType,
+                    ImportLocation = dto.LabLocation,
+                    ReceiveDate = dto.DateSampled
+                };
+                dbContext.LabTests.Add(labTest);
+                await dbContext.SaveChangesAsync();
+            }
+
+            // Find proctor type
+            var proctorType = await dbContext.ProctorTypes
+                .FirstOrDefaultAsync(pt => pt.Type == dto.ProctorType);
+            if (proctorType == null)
+                throw new ArgumentException($"Proctor type '{dto.ProctorType}' not found.");
+
+            // Create proctor
+            var proctor = new Proctor
+            {
+                ProctorID = dto.ProctorId,
+                LabTestId = labTest.Id,
+                ProctorTypeId = proctorType.Id,
+                MaxDensity = dto.MaxDensity,
+                CorrectedDensity = dto.CorrectedDensity,
+                OptimumMoistureContent = dto.OptimumMoisture,
+                SpecificGravity = dto.SpecificGravity,
+                OversizePercentage = dto.OversizePercentage,
+                DateTested = dto.DateTested
+            };
+
+            dbContext.Proctors.Add(proctor);
+            await dbContext.SaveChangesAsync();
+
+            return proctor;
+        }
+
+        public async Task<Proctor> UpdateProctor(int proctorId, ProctorUpdateDto dto)
+        {
+            var proctor = await dbContext.Proctors
+                .Include(p => p.LabTest)
+                .FirstOrDefaultAsync(p => p.Id == proctorId);
+
+            if (proctor == null)
+                throw new KeyNotFoundException($"Proctor with ID {proctorId} not found.");
+
+            // Update proctor properties if provided
+            if (!string.IsNullOrWhiteSpace(dto.ProctorId))
+                proctor.ProctorID = dto.ProctorId;
+
+            if (dto.MaxDensity.HasValue)
+                proctor.MaxDensity = dto.MaxDensity;
+
+            if (dto.CorrectedDensity.HasValue)
+                proctor.CorrectedDensity = dto.CorrectedDensity;
+
+            if (dto.OptimumMoisture.HasValue)
+                proctor.OptimumMoistureContent = dto.OptimumMoisture;
+
+            if (dto.SpecificGravity.HasValue)
+                proctor.SpecificGravity = dto.SpecificGravity;
+
+            if (dto.OversizePercentage.HasValue)
+                proctor.OversizePercentage = dto.OversizePercentage;
+
+            if (dto.DateTested.HasValue)
+                proctor.DateTested = dto.DateTested;
+
+            // Update lab test if material type or location changed
+            if (!string.IsNullOrWhiteSpace(dto.MaterialType) || !string.IsNullOrWhiteSpace(dto.LabLocation))
+            {
+                if (!string.IsNullOrWhiteSpace(dto.MaterialType))
+                    proctor.LabTest.MaterialType = dto.MaterialType;
+
+                if (!string.IsNullOrWhiteSpace(dto.LabLocation))
+                    proctor.LabTest.ImportLocation = dto.LabLocation;
+
+                if (dto.DateSampled.HasValue)
+                    proctor.LabTest.ReceiveDate = dto.DateSampled;
+            }
+
+            await dbContext.SaveChangesAsync();
+            return proctor;
+        }
+
         public async Task<ProctorCreateResponse> CreateProctorAsync(CreateProctorRequest request)
         {
             using var transaction = await dbContext.Database.BeginTransactionAsync();

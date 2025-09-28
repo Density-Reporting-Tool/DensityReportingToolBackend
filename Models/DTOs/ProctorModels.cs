@@ -99,6 +99,44 @@ namespace DensityReportingToolBackend.Models.DTOs
         public string? SpecificGravity { get; set; }
     }
 
+    /// <summary>
+    /// Simple DTO for creating proctors (matches JobService pattern)
+    /// </summary>
+    public class ProctorCreateDto
+    {
+        public required string JobNumber { get; set; }
+        public required string ProctorId { get; set; }
+        public required string MaterialType { get; set; }
+        public required string LabLocation { get; set; }
+        public required string ProctorType { get; set; }
+        public required double? MaxDensity { get; set; }
+        public required double? CorrectedDensity { get; set; }
+        public required double OptimumMoisture { get; set; }
+        public double? SpecificGravity { get; set; }
+        public required double OversizePercentage { get; set; }
+        public DateTime? DateSampled { get; set; }
+        public DateTime? DateTested { get; set; }
+    }
+
+    /// <summary>
+    /// Simple DTO for updating proctors (matches JobService pattern)
+    /// </summary>
+    public class ProctorUpdateDto
+    {
+        public int Id { get; set; }
+        public string? ProctorId { get; set; }
+        public string? MaterialType { get; set; }
+        public string? LabLocation { get; set; }
+        public string? ProctorType { get; set; }
+        public double? MaxDensity { get; set; }
+        public double? CorrectedDensity { get; set; }
+        public double? OptimumMoisture { get; set; }
+        public double? SpecificGravity { get; set; }
+        public double? OversizePercentage { get; set; }
+        public DateTime? DateSampled { get; set; }
+        public DateTime? DateTested { get; set; }
+    }
+
     #endregion
 
     #region Response Models
