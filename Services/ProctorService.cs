@@ -5,25 +5,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DensityReportingToolBackend.Services
 {
-    public class ProctorService : IProctorService
+    public class ProctorService(AppDbContext dbContext)
     {
-        private readonly AppDbContext _dbContext;
-        private readonly ILogger<ProctorService> _logger;
-
-        public ProctorService(AppDbContext dbContext, ILogger<ProctorService> logger)
-        {
-            _dbContext = dbContext;
-            _logger = logger;
-        }
+        private readonly AppDbContext dbContext = dbContext;
 
         public async Task<ProctorCreateResponse> CreateProctorAsync(CreateProctorRequest request)
         {
-            using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            using var transaction = await dbContext.Database.BeginTransactionAsync();
             
             try
             {
-                _logger.LogInformation("Creating proctor for job: {JobNumber}", request.JobNumber);
-
                 // 1. Find existing Job (throw error if not found)
                 var job = await FindJobAsync(request.JobNumber);
                 
@@ -37,16 +28,12 @@ namespace DensityReportingToolBackend.Services
                 var proctor = await CreateProctorEntityAsync(labTest.Id, proctorType.Id, request);
                 
                 await transaction.CommitAsync();
-                
-                _logger.LogInformation("Successfully created proctor with ID: {ProctorId} for job: {JobNumber}", 
-                    proctor.Id, request.JobNumber);
 
                 return MapToCreateResponse(proctor, job, labTest, proctorType, request);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Failed to create proctor for job: {JobNumber}", request.JobNumber);
                 throw;
             }
         }
@@ -55,16 +42,12 @@ namespace DensityReportingToolBackend.Services
 
         private async Task<Job> FindJobAsync(string jobNumber)
         {
-            var job = await _dbContext.Jobs.FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+            var job = await dbContext.Jobs.FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
             
             if (job == null)
             {
-                _logger.LogWarning("Job with number {JobNumber} does not exist", jobNumber);
                 throw new ArgumentException($"Job with number '{jobNumber}' does not exist. Please create the job first before adding proctors.");
             }
-            
-            _logger.LogInformation("Found existing job with ID: {JobId} and number: {JobNumber}", 
-                job.Id, job.JobNumber);
             
             return job;
         }
@@ -79,27 +62,21 @@ namespace DensityReportingToolBackend.Services
                 ReceiveDate = DateTime.TryParse(request.DateSampled, out var sampledDate) ? DateTime.SpecifyKind(sampledDate, DateTimeKind.Utc) : null
             };
             
-            _dbContext.LabTests.Add(labTest);
-            await _dbContext.SaveChangesAsync();
-            
-            _logger.LogInformation("Created LabTest with ID: {LabTestId} for job: {JobId}", 
-                labTest.Id, jobId);
+            dbContext.LabTests.Add(labTest);
+            await dbContext.SaveChangesAsync();
             
             return labTest;
         }
 
         private async Task<ProctorType> GetProctorTypeAsync(string proctorTypeName)
         {
-            var proctorType = await _dbContext.ProctorTypes
+            var proctorType = await dbContext.ProctorTypes
                 .FirstOrDefaultAsync(pt => pt.Type == proctorTypeName);
                 
             if (proctorType == null)
             {
                 throw new ArgumentException($"Proctor type '{proctorTypeName}' not found. Available types: SPDD, MPDD");
             }
-            
-            _logger.LogInformation("Using ProctorType: {ProctorType} (ID: {ProctorTypeId})", 
-                proctorType.Type, proctorType.Id);
             
             return proctorType;
         }
@@ -119,11 +96,8 @@ namespace DensityReportingToolBackend.Services
                 DateTested = DateTime.TryParse(request.DateTested, out var testedDate) ? DateTime.SpecifyKind(testedDate, DateTimeKind.Utc) : null
             };
             
-            _dbContext.Proctors.Add(proctor);
-            await _dbContext.SaveChangesAsync();
-            
-            _logger.LogInformation("Created Proctor with ID: {ProctorId} and ProctorID: {ProctorTestId}", 
-                proctor.Id, proctor.ProctorID);
+            dbContext.Proctors.Add(proctor);
+            await dbContext.SaveChangesAsync();
             
             return proctor;
         }
@@ -178,55 +152,28 @@ namespace DensityReportingToolBackend.Services
 
         public async Task<ProctorDataResponse?> GetProctorAsync(int id)
         {
-            try
-            {
-                _logger.LogInformation("Getting proctor with ID: {ProctorId}", id);
+            var proctor = await dbContext.Proctors
+                .Include(p => p.LabTest)
+                .ThenInclude(lt => lt.Job)
+                .Include(p => p.ProctorType)
+                .FirstOrDefaultAsync(p => p.Id == id);
 
-                var proctor = await _dbContext.Proctors
-                    .Include(p => p.LabTest)
-                    .ThenInclude(lt => lt.Job)
-                    .Include(p => p.ProctorType)
-                    .FirstOrDefaultAsync(p => p.Id == id);
-
-                if (proctor == null)
-                {
-                    _logger.LogWarning("Proctor with ID {ProctorId} not found", id);
-                    return null;
-                }
-
-                _logger.LogInformation("Found proctor {ProctorId} for job {JobNumber}", id, proctor.LabTest.Job.JobNumber);
+            if (proctor == null)
+                return null;
                 
-                return MapToDataResponse(proctor);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting proctor with ID: {ProctorId}", id);
-                throw;
-            }
+            return MapToDataResponse(proctor);
         }
 
         public async Task<IEnumerable<ProctorDataResponse>> GetProctorsForJobAsync(string jobNumber)
         {
-            try
-            {
-                _logger.LogInformation("Getting proctors for job: {JobNumber}", jobNumber);
+            var proctors = await dbContext.Proctors
+                .Include(p => p.LabTest)
+                .ThenInclude(lt => lt.Job)
+                .Include(p => p.ProctorType)
+                .Where(p => p.LabTest.Job.JobNumber == jobNumber)
+                .ToListAsync();
 
-                var proctors = await _dbContext.Proctors
-                    .Include(p => p.LabTest)
-                    .ThenInclude(lt => lt.Job)
-                    .Include(p => p.ProctorType)
-                    .Where(p => p.LabTest.Job.JobNumber == jobNumber)
-                    .ToListAsync();
-
-                _logger.LogInformation("Found {Count} proctors for job {JobNumber}", proctors.Count, jobNumber);
-
-                return proctors.Select(MapToDataResponse);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting proctors for job: {JobNumber}", jobNumber);
-                throw;
-            }
+            return proctors.Select(MapToDataResponse);
         }
 
         public async Task<ProctorListResponse> GetProctorsForLabAdminAsync(int page, int limit, string? jobNumber = null)
