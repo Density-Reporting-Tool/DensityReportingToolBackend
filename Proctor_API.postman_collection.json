@@ -1,0 +1,227 @@
+{
+	"info": {
+		"name": "Proctor API",
+		"description": "Complete API collection for Proctor endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "General Endpoints",
+			"item": [
+				{
+					"name": "Get All Proctors",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors"]
+						}
+					}
+				},
+				{
+					"name": "Get Proctor by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/{{proctorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "{{proctorId}}"]
+						}
+					}
+				},
+				{
+					"name": "Create Proctor (Simple)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"jobNumber\": \"{{jobNumber}}\",\n  \"proctorId\": \"P-002\",\n  \"proctorTestNumber\": \"PT-2024-002\",\n  \"materialType\": \"Clay Soil\",\n  \"labLocation\": \"Main Lab\",\n  \"proctorType\": \"MPDD\",\n  \"maxDensity\": 2056.0,\n  \"correctedDensity\": 2018.0,\n  \"optimumMoisture\": 14.2,\n  \"specificGravity\": 2.68,\n  \"oversizePercentage\": 3.5,\n  \"dateSampled\": \"2024-01-20T00:00:00Z\",\n  \"dateTested\": \"2024-01-25T00:00:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors"]
+						}
+					}
+				},
+				{
+					"name": "Update Proctor",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": {{proctorId}},\n  \"proctorId\": \"P-002\",\n  \"materialType\": \"Updated Clay Soil\",\n  \"labLocation\": \"Main Lab\",\n  \"proctorType\": \"MPDD\",\n  \"maxDensity\": 2064.0,\n  \"correctedDensity\": 2032.0,\n  \"optimumMoisture\": 14.5,\n  \"specificGravity\": 2.70,\n  \"oversizePercentage\": 3.0,\n  \"dateSampled\": \"2024-01-20T00:00:00Z\",\n  \"dateTested\": \"2024-01-26T00:00:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/{{proctorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "{{proctorId}}"]
+						}
+					}
+				},
+				{
+					"name": "Search Proctors by Job Number",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/search?jobNumber={{jobNumber}}&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "search"],
+							"query": [
+								{
+									"key": "jobNumber",
+									"value": "{{jobNumber}}"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Lab Admin Endpoints",
+			"item": [
+				{
+					"name": "Create Proctor (Lab Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"jobNumber\": \"{{jobNumber}}\",\n  \"proctorTestNumber\": \"PT-2024-003\",\n  \"materialType\": \"Sandy Soil\",\n  \"dateSampled\": \"2024-02-01\",\n  \"proctorType\": \"SPDD\",\n  \"maxDryDensity\": \"122.5\",\n  \"correctedDensity\": \"120.0\",\n  \"labLocation\": \"Main Lab\",\n  \"proctorId\": \"P-003\",\n  \"dateTested\": \"2024-02-05\",\n  \"oversizePercentage\": 2.5,\n  \"optimumMoisture\": 10.5,\n  \"specificGravity\": \"2.62\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/lab-admin",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "lab-admin"]
+						}
+					}
+				},
+				{
+					"name": "Update Proctor (Lab Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"proctorTestNumber\": \"PT-2024-003-UPDATED\",\n  \"materialType\": \"Updated Sandy Soil\",\n  \"dateSampled\": \"2024-02-01\",\n  \"proctorType\": \"SPDD\",\n  \"maxDryDensity\": \"123.0\",\n  \"correctedDensity\": \"121.0\",\n  \"labLocation\": \"Main Lab\",\n  \"dateTested\": \"2024-02-06\",\n  \"oversizePercentage\": 2.0,\n  \"optimumMoisture\": 11.0,\n  \"specificGravity\": \"2.63\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/lab-admin/{{proctorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "lab-admin", "{{proctorId}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Proctors (Lab Admin - Paginated)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/lab-admin?page=1&limit=50&jobNumber={{jobNumber}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "lab-admin"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								},
+								{
+									"key": "jobNumber",
+									"value": "{{jobNumber}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Field Tech Endpoints",
+			"item": [
+				{
+					"name": "Get Density Requirements",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/field-tech/{{proctorId}}/density-requirements",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "field-tech", "{{proctorId}}", "density-requirements"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Shared Endpoints",
+			"item": [
+				{
+					"name": "Get Proctors for Job",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/job/{{jobNumber}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "job", "{{jobNumber}}"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "jobNumber",
+			"value": "12345",
+			"type": "string"
+		},
+		{
+			"key": "proctorId",
+			"value": "1",
+			"type": "string"
+		}
+	]
+}
+

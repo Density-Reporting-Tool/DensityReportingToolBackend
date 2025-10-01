@@ -26,11 +26,11 @@ public static class ProctorValidator
         else if (dto.ProctorType != "SPDD" && dto.ProctorType != "MPDD")
             result.AddError(nameof(dto.ProctorType), "Proctor Type must be SPDD or MPDD");
 
-        if (dto.MaxDensity.HasValue && (dto.MaxDensity <= 0 || dto.MaxDensity > 200))
-            result.AddError(nameof(dto.MaxDensity), "Max Density must be between 0 and 200");
+        if (dto.MaxDensity.HasValue && (dto.MaxDensity <= 0 || dto.MaxDensity > 3000))
+            result.AddError(nameof(dto.MaxDensity), "Max Density must be between 0 and 3000 kg/m³");
 
-        if (dto.CorrectedDensity.HasValue && (dto.CorrectedDensity <= 0 || dto.CorrectedDensity > 200))
-            result.AddError(nameof(dto.CorrectedDensity), "Corrected Density must be between 0 and 200");
+        if (dto.CorrectedDensity.HasValue && (dto.CorrectedDensity <= 0 || dto.CorrectedDensity > 3000))
+            result.AddError(nameof(dto.CorrectedDensity), "Corrected Density must be between 0 and 3000 kg/m³");
 
         if (dto.OptimumMoisture < 0 || dto.OptimumMoisture > 100)
             result.AddError(nameof(dto.OptimumMoisture), "Optimum Moisture must be between 0 and 100");
@@ -57,11 +57,11 @@ public static class ProctorValidator
         if (!string.IsNullOrWhiteSpace(dto.ProctorType) && dto.ProctorType != "SPDD" && dto.ProctorType != "MPDD")
             result.AddError(nameof(dto.ProctorType), "Proctor Type must be SPDD or MPDD");
 
-        if (dto.MaxDensity.HasValue && (dto.MaxDensity <= 0 || dto.MaxDensity > 200))
-            result.AddError(nameof(dto.MaxDensity), "Max Density must be between 0 and 200");
+        if (dto.MaxDensity.HasValue && (dto.MaxDensity <= 0 || dto.MaxDensity > 3000))
+            result.AddError(nameof(dto.MaxDensity), "Max Density must be between 0 and 3000 kg/m³");
 
-        if (dto.CorrectedDensity.HasValue && (dto.CorrectedDensity <= 0 || dto.CorrectedDensity > 200))
-            result.AddError(nameof(dto.CorrectedDensity), "Corrected Density must be between 0 and 200");
+        if (dto.CorrectedDensity.HasValue && (dto.CorrectedDensity <= 0 || dto.CorrectedDensity > 3000))
+            result.AddError(nameof(dto.CorrectedDensity), "Corrected Density must be between 0 and 3000 kg/m³");
 
         if (dto.OptimumMoisture.HasValue && (dto.OptimumMoisture < 0 || dto.OptimumMoisture > 100))
             result.AddError(nameof(dto.OptimumMoisture), "Optimum Moisture must be between 0 and 100");
