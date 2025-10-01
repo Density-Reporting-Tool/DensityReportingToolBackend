@@ -41,6 +41,33 @@ namespace DensityReportingToolBackend.Models.DTOs
         public string? Conclusion { get; set; }
     }
 
+    /// <summary>
+    /// Request model for creating a density test
+    /// </summary>
+    public class CreateDensityTestRequest
+    {
+        [Required(ErrorMessage = "Proctor ID is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Valid Proctor ID is required")]
+        public required int ProctorId { get; set; }
+
+        [StringLength(200, ErrorMessage = "Test area cannot exceed 200 characters")]
+        public string? TestArea { get; set; }
+
+        [StringLength(200, ErrorMessage = "Location cannot exceed 200 characters")]
+        public string? Location { get; set; }
+
+        public string ElevationReference { get; set; } = "AboveSubgrade";
+        public double ElevationValue { get; set; }
+        public string ElevationUnit { get; set; } = "Meters";
+        public double CorrectedOversizePercentage { get; set; }
+        public double ProbeDepth { get; set; }
+        public string ProbeDepthUnit { get; set; } = "Cm";
+        public double CompactionSpecification { get; set; }
+        public string CompactionSpecificationUnit { get; set; } = "SPDD";
+        public double DensityValue { get; set; }
+        public double MoistureValue { get; set; }
+    }
+
     #endregion
 
     #region Response Models
@@ -184,6 +211,30 @@ namespace DensityReportingToolBackend.Models.DTOs
         public string JobNumber { get; set; } = string.Empty;
         public string ClientName { get; set; } = string.Empty;
         public string ProjectName { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Proctor information for reports and field testing
+    /// </summary>
+    public class ReportProctorDataResponse
+    {
+        public int Id { get; set; }
+        public string ProctorID { get; set; } = string.Empty;
+        public double? MaxDensity { get; set; }
+        public double? CorrectedDensity { get; set; }
+        public double? OptimumMoistureContent { get; set; }
+        public double? SpecificGravity { get; set; }
+        public string? ProctorType { get; set; }
+        public string? MaterialType { get; set; }
+    }
+
+    /// <summary>
+    /// Density test creation response
+    /// </summary>
+    public class DensityTestCreateResponse
+    {
+        public int Id { get; set; }
+        public string Message { get; set; } = "Density test created successfully";
     }
 
     #endregion

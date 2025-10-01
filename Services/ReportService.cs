@@ -5,16 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DensityReportingToolBackend.Services
 {
-    public class ReportService : IReportService
+    /// <summary>
+    /// Service for managing Report operations including CRUD operations, 
+    /// density test creation, and report coordination.
+    /// </summary>
+    public class ReportService(AppDbContext dbContext)
     {
-        private readonly AppDbContext _dbContext;
-        private readonly ILogger<ReportService> _logger;
-
-        public ReportService(AppDbContext dbContext, ILogger<ReportService> logger)
-        {
-            _dbContext = dbContext;
-            _logger = logger;
-        }
+        private readonly AppDbContext _dbContext = dbContext;
 
         public async Task<ReportCreateResponse> CreateReportAsync(CreateReportRequest request)
         {
@@ -22,8 +19,6 @@ namespace DensityReportingToolBackend.Services
             
             try
             {
-                _logger.LogInformation("Creating report for job ID: {JobId}", request.JobId);
-
                 // 1. Validate and find job
                 var job = await FindJobAsync(request.JobId);
                 
@@ -50,93 +45,66 @@ namespace DensityReportingToolBackend.Services
                 }
                 
                 await transaction.CommitAsync();
-                
-                _logger.LogInformation("Successfully created report with ID: {ReportId} and number: {ReportNumber}", 
-                    newReport.Id, newReport.ReportNumber);
 
                 return MapToCreateResponse(newReport, job, employee, reviewer);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Failed to create report for job: {JobId}", request.JobId);
                 throw;
             }
         }
 
         public async Task<IEnumerable<ReportListByJobResponse>> GetReportsByJobAsync(string jobNumber)
         {
-            try
+            var reports = await _dbContext.Reports
+                .Include(r => r.Job)
+                .Include(r => r.DensityTests)
+                .Include(r => r.Photos)
+                .Include(r => r.Memos)
+                .Where(r => r.Job.JobNumber == jobNumber)
+                .OrderByDescending(r => r.ReportNumber) // Newest reports first
+                .ToListAsync();
+
+            var result = new List<ReportListByJobResponse>();
+
+            foreach (var report in reports)
             {
-                _logger.LogInformation("Getting reports for job: {JobNumber}", jobNumber);
+                // Get employee info
+                var employee = await _dbContext.PersonalInfos
+                    .FirstOrDefaultAsync(p => p.Id == report.EmployeeId && p.Company == "GeoPacific");
 
-                var reports = await _dbContext.Reports
-                    .Include(r => r.Job)
-                    .Include(r => r.DensityTests)
-                    .Include(r => r.Photos)
-                    .Include(r => r.Memos)
-                    .Where(r => r.Job.JobNumber == jobNumber)
-                    .OrderByDescending(r => r.ReportNumber) // Newest reports first
-                    .ToListAsync();
-
-                var result = new List<ReportListByJobResponse>();
-
-                foreach (var report in reports)
+                // Get reviewer info (if assigned)
+                PersonalInfo? reviewer = null;
+                if (report.ReviewerId > 0)
                 {
-                    // Get employee info
-                    var employee = await _dbContext.PersonalInfos
-                        .FirstOrDefaultAsync(p => p.Id == report.EmployeeId && p.Company == "GeoPacific");
-
-                    // Get reviewer info (if assigned)
-                    PersonalInfo? reviewer = null;
-                    if (report.ReviewerId > 0)
-                    {
-                        reviewer = await _dbContext.PersonalInfos
-                            .FirstOrDefaultAsync(p => p.Id == report.ReviewerId && p.Company == "GeoPacific");
-                    }
-
-                    result.Add(MapToListByJobResponse(report, employee, reviewer));
+                    reviewer = await _dbContext.PersonalInfos
+                        .FirstOrDefaultAsync(p => p.Id == report.ReviewerId && p.Company == "GeoPacific");
                 }
 
-                _logger.LogInformation("Successfully retrieved {ReportCount} reports for job {JobNumber}", result.Count, jobNumber);
-                return result;
+                result.Add(MapToListByJobResponse(report, employee, reviewer));
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting reports for job: {JobNumber}", jobNumber);
-                throw;
-            }
+
+            return result;
         }
 
         public async Task<ReportDetailResponse?> GetReportAsync(int reportId)
         {
-            try
+            var report = await _dbContext.Reports
+                .Include(r => r.Job)
+                .Include(r => r.Employee)
+                .Include(r => r.Reviewer)
+                .Include(r => r.DensityTests)
+                .Include(r => r.Photos)
+                .Include(r => r.Memos)
+                .FirstOrDefaultAsync(r => r.Id == reportId);
+
+            if (report == null)
             {
-                _logger.LogInformation("Getting report with ID: {ReportId}", reportId);
-
-                var report = await _dbContext.Reports
-                    .Include(r => r.Job)
-                    .Include(r => r.Employee)
-                    .Include(r => r.Reviewer)
-                    .Include(r => r.DensityTests)
-                    .Include(r => r.Photos)
-                    .Include(r => r.Memos)
-                    .FirstOrDefaultAsync(r => r.Id == reportId);
-
-                if (report == null)
-                {
-                    _logger.LogWarning("Report with ID {ReportId} not found", reportId);
-                    return null;
-                }
-
-                _logger.LogInformation("Successfully retrieved report {ReportId}", reportId);
-                return MapToDetailResponse(report);
+                return null;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting report with ID: {ReportId}", reportId);
-                throw;
-            }
+
+            return MapToDetailResponse(report);
         }
 
         #region Private Helper Methods
@@ -147,12 +115,8 @@ namespace DensityReportingToolBackend.Services
             
             if (job == null)
             {
-                _logger.LogWarning("Job with ID {JobId} does not exist", jobId);
                 throw new ArgumentException($"Job with ID {jobId} not found");
             }
-            
-            _logger.LogInformation("Found existing job with ID: {JobId} and number: {JobNumber}", 
-                job.Id, job.JobNumber);
             
             return job;
         }
@@ -164,12 +128,8 @@ namespace DensityReportingToolBackend.Services
                 
             if (employee == null)
             {
-                _logger.LogWarning("GeoPacific employee with ID {EmployeeId} not found", employeeId);
                 throw new ArgumentException($"GeoPacific employee with ID {employeeId} not found");
             }
-            
-            _logger.LogInformation("Found GeoPacific employee: {EmployeeId} - {FirstName} {LastName}", 
-                employee.Id, employee.FirstName, employee.LastName);
             
             return employee;
         }
@@ -181,12 +141,8 @@ namespace DensityReportingToolBackend.Services
                 
             if (reviewer == null)
             {
-                _logger.LogWarning("GeoPacific reviewer with ID {ReviewerId} not found", reviewerId);
                 throw new ArgumentException($"GeoPacific reviewer with ID {reviewerId} not found");
             }
-            
-            _logger.LogInformation("Found GeoPacific reviewer: {ReviewerId} - {FirstName} {LastName}", 
-                reviewer.Id, reviewer.FirstName, reviewer.LastName);
             
             return reviewer;
         }
@@ -198,7 +154,6 @@ namespace DensityReportingToolBackend.Services
                 .MaxAsync(r => (int?)r.ReportNumber) ?? 0;
                 
             var nextNumber = maxReportNumber + 1;
-            _logger.LogInformation("Next report number for job {JobId}: {ReportNumber}", jobId, nextNumber);
             
             return nextNumber;
         }
@@ -220,9 +175,6 @@ namespace DensityReportingToolBackend.Services
             _dbContext.Reports.Add(newReport);
             await _dbContext.SaveChangesAsync();
             
-            _logger.LogInformation("Created report with ID: {ReportId} and number: {ReportNumber}", 
-                newReport.Id, newReport.ReportNumber);
-            
             return newReport;
         }
 
@@ -239,8 +191,6 @@ namespace DensityReportingToolBackend.Services
 
             _dbContext.ReportMemos.Add(memo);
             await _dbContext.SaveChangesAsync();
-
-            _logger.LogInformation("Successfully created memo for report ID: {ReportId}", reportId);
         }
 
         private static ReportCreateResponse MapToCreateResponse(
@@ -396,5 +346,132 @@ namespace DensityReportingToolBackend.Services
         }
 
         #endregion
+
+        public async Task<IEnumerable<ReportListByJobResponse>> GetAllReportsAsync()
+        {
+            var reports = await _dbContext.Reports
+                .Include(r => r.Job)
+                .Include(r => r.DensityTests)
+                .Include(r => r.Photos)
+                .Include(r => r.Memos)
+                .OrderByDescending(r => r.StartDate) // Newest reports first
+                .ToListAsync();
+
+            var result = new List<ReportListByJobResponse>();
+
+            foreach (var report in reports)
+            {
+                // Get employee info
+                var employee = await _dbContext.PersonalInfos
+                    .FirstOrDefaultAsync(p => p.Id == report.EmployeeId && p.Company == "GeoPacific");
+
+                // Get reviewer info (if assigned)
+                PersonalInfo? reviewer = null;
+                if (report.ReviewerId > 0)
+                {
+                    reviewer = await _dbContext.PersonalInfos
+                        .FirstOrDefaultAsync(p => p.Id == report.ReviewerId && p.Company == "GeoPacific");
+                }
+
+                result.Add(MapToListByJobResponse(report, employee, reviewer));
+            }
+
+            return result;
+        }
+
+        public async Task<IEnumerable<ReportProctorDataResponse>> GetProctorsForJobAsync(int jobId)
+        {
+            var proctors = await _dbContext.Proctors
+                .Include(p => p.ProctorType)
+                .Include(p => p.LabTest)
+                .Where(p => p.LabTest.JobId == jobId)
+                .Select(p => new ReportProctorDataResponse
+                {
+                    Id = p.Id,
+                    ProctorID = p.ProctorID ?? string.Empty,
+                    MaxDensity = p.MaxDensity,
+                    CorrectedDensity = p.CorrectedDensity,
+                    OptimumMoistureContent = p.OptimumMoistureContent,
+                    SpecificGravity = p.SpecificGravity,
+                    ProctorType = p.ProctorType.Type,
+                    MaterialType = p.LabTest.MaterialType
+                })
+                .ToListAsync();
+
+            return proctors;
+        }
+
+        public async Task<DensityTestCreateResponse> CreateDensityTestAsync(int reportId, CreateDensityTestRequest request)
+        {
+            // Verify report exists
+            var report = await _dbContext.Reports.FindAsync(reportId);
+            if (report == null)
+            {
+                throw new ArgumentException($"Report with ID {reportId} not found");
+            }
+
+            // Create density test
+            var densityTest = new DensityTest
+            {
+                ReportId = reportId,
+                ProctorId = request.ProctorId,
+                TestArea = request.TestArea,
+                Location = request.Location,
+                ElevationReference = Enum.Parse<ElevationReference>(request.ElevationReference),
+                ElevationValue = request.ElevationValue,
+                ElevationUnit = Enum.Parse<ElevationUnit>(request.ElevationUnit),
+                CorrectedOversizePercentage = (float)request.CorrectedOversizePercentage,
+                ProbeDepth = (int)request.ProbeDepth,
+                ProbeDepthUnit = Enum.Parse<ProbeDepthUnit>(request.ProbeDepthUnit),
+                CompactionSpecification = request.CompactionSpecification,
+                CompactionSpecificationUnit = Enum.Parse<CompactionSpecificationUnit>(request.CompactionSpecificationUnit),
+                DensityValue = request.DensityValue,
+                MoistureValue = request.MoistureValue,
+                CreatedDate = DateTime.UtcNow
+            };
+
+            _dbContext.DensityTests.Add(densityTest);
+            await _dbContext.SaveChangesAsync();
+
+            return new DensityTestCreateResponse
+            {
+                Id = densityTest.Id,
+                Message = "Density test created successfully"
+            };
+        }
+
+        public async Task<IEnumerable<ReportListByJobResponse>> SearchReportsByJobNumberAsync(string jobNumber, int limit = 10)
+        {
+            var reports = await _dbContext.Reports
+                .Include(r => r.Job)
+                .Include(r => r.DensityTests)
+                .Include(r => r.Photos)
+                .Include(r => r.Memos)
+                .Where(r => r.Job.JobNumber.Contains(jobNumber))
+                .OrderByDescending(r => r.StartDate)
+                .Take(limit)
+                .ToListAsync();
+
+            var result = new List<ReportListByJobResponse>();
+
+            foreach (var report in reports)
+            {
+                // Get employee info
+                var employee = await _dbContext.PersonalInfos
+                    .FirstOrDefaultAsync(p => p.Id == report.EmployeeId && p.Company == "GeoPacific");
+
+                // Get reviewer info (if assigned)
+                PersonalInfo? reviewer = null;
+                if (report.ReviewerId > 0)
+                {
+                    reviewer = await _dbContext.PersonalInfos
+                        .FirstOrDefaultAsync(p => p.Id == report.ReviewerId && p.Company == "GeoPacific");
+                }
+
+                result.Add(MapToListByJobResponse(report, employee, reviewer));
+            }
+
+            return result;
+        }
     }
 }
