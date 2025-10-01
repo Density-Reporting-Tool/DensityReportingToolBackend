@@ -52,17 +52,29 @@ namespace DensityReportingToolBackend.Services
 
         /// <summary>
         /// Searches for proctors by job number with fuzzy matching.
+        /// Uses a hybrid approach: first finds matching job IDs, then queries proctors using indexed foreign keys.
         /// </summary>
         /// <param name="jobNumber">The job number to search for (partial matches supported)</param>
         /// <param name="limit">Maximum number of results to return (default: 10)</param>
         /// <returns>Collection of matching proctors ordered by test date</returns>
         public async Task<IEnumerable<Proctor>> SearchProctorsByJobNumber(string jobNumber, int limit = 100)
         {
+            // Step 1: Find matching job IDs (optimized query on indexed JobNumber field)
+            var jobIds = await dbContext.Jobs
+                .Where(j => j.JobNumber.Contains(jobNumber))
+                .Select(j => j.Id)
+                .ToListAsync();
+            
+            // Early return if no jobs found
+            if (!jobIds.Any())
+                return Enumerable.Empty<Proctor>();
+            
+            // Step 2: Query proctors using job IDs (faster integer comparison on indexed FK)
             return await dbContext.Proctors
                 .Include(p => p.LabTest)
                     .ThenInclude(lt => lt.Job)
                 .Include(p => p.ProctorType)
-                .Where(p => p.LabTest.Job.JobNumber.Contains(jobNumber))
+                .Where(p => jobIds.Contains(p.LabTest.JobId)) // Integer comparison on indexed foreign key
                 .OrderByDescending(p => p.DateTested)
                 .ThenBy(p => p.ProctorID)
                 .Take(limit)
