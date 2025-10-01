@@ -46,7 +46,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register services
-builder.Services.AddScoped<DensityReportingToolBackend.Services.IProctorService, DensityReportingToolBackend.Services.ProctorService>();
+// Note: ProctorService is instantiated directly in ProctorController, not via DI
 builder.Services.AddScoped<DensityReportingToolBackend.Services.IReportService, DensityReportingToolBackend.Services.ReportService>();
 
 // Returns a WebApplication instance, which represents your running server

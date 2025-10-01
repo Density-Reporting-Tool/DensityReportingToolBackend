@@ -393,7 +393,7 @@ namespace DensityReportingToolBackend.Services
             return new ProctorUpdateDto
             {
                 Id = id,
-                ProctorId = request.ProctorId,
+                ProctorId = null, // ProctorId is not updatable via UpdateProctorRequest
                 MaterialType = request.MaterialType,
                 LabLocation = request.LabLocation,
                 ProctorType = request.ProctorType,

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using DensityReportingToolBackend.Services;
+using DensityReportingToolBackend.Models;
 using DensityReportingToolBackend.Models.DTOs;
 using DensityReportingToolBackend.Data;
 using DensityReportingToolBackend.Validators;
@@ -356,32 +357,7 @@ namespace DensityReportingToolBackend.Controllers
 
         #region Shared Endpoints
 
-        /// <summary>
-        /// Get a specific proctor by ID (used by both roles)
-        /// GET /api/proctors/5
-        /// </summary>
-        [HttpGet("{id:int}")]
-        public async Task<ActionResult<ProctorDataResponse>> GetProctor(int id)
-        {
-            try
-            {
-                _logger.LogInformation("Getting proctor with ID: {ProctorId}", id);
-                
-                var proctor = await _proctorService.GetProctorAsync(id);
-                
-                if (proctor == null)
-                {
-                    return NotFound(new { message = $"Proctor with ID {id} not found" });
-                }
-                
-                return Ok(proctor);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting proctor {ProctorId}", id);
-                return StatusCode(500, new { message = "An error occurred while retrieving the proctor" });
-            }
-        }
+        // NOTE: Duplicate GetProctor method removed - using the one at line 65 instead
 
         /// <summary>
         /// Get all proctors for a specific job (shared by both lab admin and field tech)

@@ -1,3 +1,4 @@
+using DensityReportingToolBackend.Models;
 using DensityReportingToolBackend.Models.DTOs;
 
 namespace DensityReportingToolBackend.Validators;
