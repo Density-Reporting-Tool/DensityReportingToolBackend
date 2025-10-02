@@ -89,10 +89,8 @@ static async Task SeedData(AppDbContext context)
     {
         var proctorTypes = new[]
         {
-            new ProctorType { Type = "ASTM D698 - Standard Proctor" },
-            new ProctorType { Type = "ASTM D1557 - Modified Proctor" },
-            new ProctorType { Type = "AASHTO T99 - Standard Proctor" },
-            new ProctorType { Type = "AASHTO T180 - Modified Proctor" }
+            new ProctorType { Type = "Standard" },
+            new ProctorType { Type = "Modified" }
         };
         
         context.ProctorTypes.AddRange(proctorTypes);
@@ -122,59 +120,33 @@ static async Task SeedData(AppDbContext context)
         await context.SaveChangesAsync();
         
         // Create proctors for each lab test
-        var astmStandardType = await context.ProctorTypes.FirstAsync(pt => pt.Type == "ASTM D698 - Standard Proctor");
-        var astmModifiedType = await context.ProctorTypes.FirstAsync(pt => pt.Type == "ASTM D1557 - Modified Proctor");
-        var aashtoStandardType = await context.ProctorTypes.FirstAsync(pt => pt.Type == "AASHTO T99 - Standard Proctor");
-        var aashtoModifiedType = await context.ProctorTypes.FirstAsync(pt => pt.Type == "AASHTO T180 - Modified Proctor");
+        var standardType = await context.ProctorTypes.FirstAsync(pt => pt.Type == "Standard");
+        var modifiedType = await context.ProctorTypes.FirstAsync(pt => pt.Type == "Modified");
         
         foreach (var labTest in labTests)
         {
-            // ASTM D698 - Standard Proctor
+            // Standard Proctor
             proctors.Add(new Proctor
             {
-                ProctorID = $"ASTM-D698-{labTest.Id}",
+                ProctorID = $"Standard-{labTest.Id}",
                 LabTestId = labTest.Id,
-                ProctorTypeId = astmStandardType.Id,
+                ProctorTypeId = standardType.Id,
                 MaxDensity = 1.85,
                 CorrectedDensity = 1.82,
                 OptimumMoistureContent = 12.5,
                 SpecificGravity = 2.65
             });
             
-            // ASTM D1557 - Modified Proctor
+            // Modified Proctor
             proctors.Add(new Proctor
             {
-                ProctorID = $"ASTM-D1557-{labTest.Id}",
+                ProctorID = $"Modified-{labTest.Id}",
                 LabTestId = labTest.Id,
-                ProctorTypeId = astmModifiedType.Id,
+                ProctorTypeId = modifiedType.Id,
                 MaxDensity = 2.05,
                 CorrectedDensity = 2.02,
                 OptimumMoistureContent = 10.8,
                 SpecificGravity = 2.65
-            });
-            
-            // AASHTO T99 - Standard Proctor
-            proctors.Add(new Proctor
-            {
-                ProctorID = $"AASHTO-T99-{labTest.Id}",
-                LabTestId = labTest.Id,
-                ProctorTypeId = aashtoStandardType.Id,
-                MaxDensity = 1.83,
-                CorrectedDensity = 1.80,
-                OptimumMoistureContent = 13.2,
-                SpecificGravity = 2.67
-            });
-            
-            // AASHTO T180 - Modified Proctor
-            proctors.Add(new Proctor
-            {
-                ProctorID = $"AASHTO-T180-{labTest.Id}",
-                LabTestId = labTest.Id,
-                ProctorTypeId = aashtoModifiedType.Id,
-                MaxDensity = 2.08,
-                CorrectedDensity = 2.05,
-                OptimumMoistureContent = 11.2,
-                SpecificGravity = 2.67
             });
         }
         
