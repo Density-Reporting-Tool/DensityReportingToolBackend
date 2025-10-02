@@ -219,6 +219,25 @@ namespace DensityReportingToolBackend.Services
         }
 
         /// <summary>
+        /// Retrieves all proctors for a specific job using job ID.
+        /// </summary>
+        /// <param name="jobId">The job ID to filter by</param>
+        /// <returns>Collection of proctors in legacy response format</returns>
+        public async Task<IEnumerable<ProctorDataResponse>> GetProctorsForJobByIdAsync(int jobId)
+        {
+            var proctors = await dbContext.Proctors
+                .Include(p => p.LabTest)
+                    .ThenInclude(lt => lt.Job)
+                .Include(p => p.ProctorType)
+                .Where(p => p.LabTest.JobId == jobId)
+                .OrderByDescending(p => p.DateTested)
+                .ThenBy(p => p.ProctorID)
+                .ToListAsync();
+
+            return proctors.Select(ConvertToProctorDataResponse);
+        }
+
+        /// <summary>
         /// Retrieves proctors for lab admin interface with pagination.
         /// Supports filtering by job number and provides paginated results.
         /// </summary>

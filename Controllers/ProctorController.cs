@@ -381,6 +381,29 @@ namespace DensityReportingToolBackend.Controllers
             }
         }
 
+        /// <summary>
+        /// Get all proctors for a specific job by job ID
+        /// GET /api/proctors/job-id/123
+        /// </summary>
+        [HttpGet("job-id/{jobId:int}")]
+        public async Task<ActionResult<IEnumerable<ProctorDataResponse>>> GetProctorsForJobById(int jobId)
+        {
+            try
+            {
+                _logger.LogInformation("Getting proctors for job ID: {JobId}", jobId);
+                
+                var proctors = await _proctorService.GetProctorsForJobByIdAsync(jobId);
+                
+                _logger.LogInformation("Found {Count} proctors for job ID {JobId}", proctors.Count(), jobId);
+                return Ok(proctors);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting proctors for job ID {JobId}", jobId);
+                return StatusCode(500, new { message = "An error occurred while retrieving proctors" });
+            }
+        }
+
         #endregion
     }
 }
