@@ -57,14 +57,36 @@ run 'dotnet run'
 - ✅ Database persistence verification
 - ✅ JSON response formatting
 
-# Project setup
+# Setup
 
-## 1. clone the repo
+## Docker Dev (recommended)
+### 1. Clone the repo
 ```bash
 git clone https://github.com/Density-Reporting-Tool/DensityReportingToolBackend.git
 ```
 
-## 2. Run Docker
+### 2. Add your secret .env file
+see .env.example for a template
+
+### 3. Build and run the container
 ```bash
 docker compose up --build
 ```
+
+## Local Dev (for fast debugging with breakpoints)
+
+### 1. clone the repo
+```bash
+git clone https://github.com/Density-Reporting-Tool/DensityReportingToolBackend.git
+```
+
+### 2. Add your secret .env file
+see .env.example for a template
+
+### 3. Install dependencies
+
+### 4. Run the server
+```bash
+dotnet run
+```
+
