@@ -1,45 +1,23 @@
+version: "3.9"
+
 services:
   backend:
-    build: 
+    build:
       context: .
-      dockerfile: Dockerfile   # Prod Dockerfile
+      dockerfile: Dockerfile.dev
+    container_name: density-backend-dev
     ports:
       - "5013:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:8080
-    depends_on:
-      - db
-    networks:
-      - app-network
-    env_file:
-      - .env
-
-  frontend:
-    build:
-      context: ../DensityReportingToolFrontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    networks:
-      - app-network
-
-  db:
-    image: postgres:15
-    ports:
-      - "5432:5432"
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
     env_file:
       - .env
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - app-network
-
-volumes:
-  postgres_data:
-
-networks:
-  app-network:
-    driver: bridge
+      - .:/app        # This combined with dotnet watch run lets the container see changes to the source code
+                      # and restart the server. This whole directory is mounted to the container.
+      - /app/bin      # Anonymous volume: replaces the container's /app/bin directory with an empty
+                      # Docker-managed volume. Prevents host build artifacts from leaking into the container.
+      - /app/obj      # Anonymous volume: same as above, but for /app/obj. Keeps intermediate build
+                      # files isolated inside Docker so they don’t conflict with local ones.
+    entrypoint: ["dotnet", "watch", "run", "--urls", "http://+:8080"]
