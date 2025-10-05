@@ -1,0 +1,22 @@
+# Use the .NET SDK image (needed for hot reload & building)
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS dev
+
+WORKDIR /app
+
+# Install optional: tools like curl, git (useful for dev debugging)
+RUN apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/*
+
+# Copy csproj and restore as distinct layers
+COPY ["DensityReportingToolBackend.csproj", "./"]
+RUN dotnet restore "DensityReportingToolBackend.csproj"
+
+# Copy everything else (but you’ll override with volume mount anyway)
+COPY . .
+
+# Expose port
+EXPOSE 8080
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
+ENV DOTNET_HOST_PATH=/usr/share/dotnet/dotnet
+
+# Run in watch mode
+ENTRYPOINT ["dotnet", "watch", "run", "--urls", "http://+:8080"]
