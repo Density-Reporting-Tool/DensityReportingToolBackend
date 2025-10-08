@@ -41,16 +41,23 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Get connection string from environment variable (for production/DigitalOcean) or appsettings (for local dev)
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
-    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+// Get connection string from environment variables (for production/DigitalOcean) or appsettings (for local dev)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// If DATABASE_URL is in the format postgresql://..., convert it to Npgsql format
-if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgresql://"))
+// If in production, build connection string from individual environment variables
+if (builder.Environment.IsProduction())
 {
-    var uri = new Uri(connectionString);
-    var userInfo = uri.UserInfo.Split(':');
-    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+    var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
+    var dbPort = Environment.GetEnvironmentVariable("port") ?? "2506";
+    var dbUser = Environment.GetEnvironmentVariable("POSTGRES_USER");
+    var dbPassword = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD");
+    var dbName = Environment.GetEnvironmentVariable("POSTGRES_DB");
+
+    if (!string.IsNullOrEmpty(dbHost) && !string.IsNullOrEmpty(dbUser) && 
+        !string.IsNullOrEmpty(dbPassword) && !string.IsNullOrEmpty(dbName))
+    {
+        connectionString = $"Host={dbHost};Port={dbPort};Database={dbName};Username={dbUser};Password={dbPassword};SSL Mode=Require;Trust Server Certificate=true";
+    }
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -83,10 +90,14 @@ app.UseAuthorization();
 // Maps your controllers so they handle incoming requests
 app.MapControllers();
 
-// Seed data
+// Apply database migrations and seed data
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    
+    // Apply any pending migrations automatically
+    await context.Database.MigrateAsync();
+    
     await SeedData(context);
 }
 
