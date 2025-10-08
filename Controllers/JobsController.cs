@@ -184,5 +184,241 @@ namespace DensityReportingToolBackend.Controllers
 
             return Ok(jobDtos);
         }
+
+        // ==================== PROJECT MANAGER ENDPOINTS ====================
+
+        /// <summary>
+        /// Assign a project manager to a job (deactivates any existing active PM for this job)
+        /// </summary>
+        [HttpPost("{jobNumber}/project-manager")]
+        public async Task<ActionResult<object>> AssignProjectManager(
+            string jobNumber,
+            [FromBody] AssignProjectManagerDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Assigning PM {PersonalInfoId} to job {JobNumber}", dto.PersonalInfoId, jobNumber);
+
+                // Get the job
+                var job = await _dbContext.Jobs
+                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job {jobNumber} not found" });
+                }
+
+                // Verify the person exists
+                var person = await _dbContext.PersonalInfos
+                    .FirstOrDefaultAsync(p => p.Id == dto.PersonalInfoId);
+
+                if (person == null)
+                {
+                    return NotFound(new { message = $"Person with ID {dto.PersonalInfoId} not found" });
+                }
+
+                // Deactivate any existing active project managers for this job
+                var existingPMs = await _dbContext.JobProjectManagers
+                    .Where(pm => pm.JobId == job.Id && pm.IsActive)
+                    .ToListAsync();
+
+                foreach (var pm in existingPMs)
+                {
+                    pm.IsActive = false;
+                }
+
+                // Create new project manager assignment
+                var newPM = new JobProjectManager
+                {
+                    JobId = job.Id,
+                    PersonalInfoId = dto.PersonalInfoId,
+                    IsPrimary = dto.IsPrimary,
+                    IsActive = true
+                };
+
+                _dbContext.JobProjectManagers.Add(newPM);
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully assigned PM {PersonalInfoId} to job {JobNumber}", dto.PersonalInfoId, jobNumber);
+
+                return Ok(new
+                {
+                    message = "Project manager assigned successfully",
+                    projectManager = new
+                    {
+                        id = newPM.Id,
+                        personalInfoId = newPM.PersonalInfoId,
+                        fullName = $"{person.FirstName} {person.LastName}",
+                        isPrimary = newPM.IsPrimary,
+                        isActive = newPM.IsActive
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error assigning PM to job {JobNumber}", jobNumber);
+                return StatusCode(500, new { message = "An error occurred while assigning the project manager" });
+            }
+        }
+
+        /// <summary>
+        /// Remove/deactivate a project manager from a job
+        /// </summary>
+        [HttpDelete("{jobNumber}/project-manager/remove/{projectManagerId:int}")]
+        public async Task<ActionResult<object>> RemoveProjectManager(
+            string jobNumber,
+            int projectManagerId)
+        {
+            try
+            {
+                _logger.LogInformation("Removing PM {ProjectManagerId} from job {JobNumber}", projectManagerId, jobNumber);
+
+                var job = await _dbContext.Jobs
+                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job {jobNumber} not found" });
+                }
+
+                var projectManager = await _dbContext.JobProjectManagers
+                    .FirstOrDefaultAsync(pm => pm.Id == projectManagerId && pm.JobId == job.Id);
+
+                if (projectManager == null)
+                {
+                    return NotFound(new { message = $"Project manager {projectManagerId} not found for job {jobNumber}" });
+                }
+
+                projectManager.IsActive = false;
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully removed PM {ProjectManagerId} from job {JobNumber}", projectManagerId, jobNumber);
+
+                return Ok(new { message = "Project manager removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing PM {ProjectManagerId} from job {JobNumber}", projectManagerId, jobNumber);
+                return StatusCode(500, new { message = "An error occurred while removing the project manager" });
+            }
+        }
+
+        // ==================== SITE CONTACT ENDPOINTS ====================
+
+        /// <summary>
+        /// Assign a site contact to a job (deactivates any existing active site contact for this job)
+        /// </summary>
+        [HttpPost("{jobNumber}/site-contact")]
+        public async Task<ActionResult<object>> AssignSiteContact(
+            string jobNumber,
+            [FromBody] AssignSiteContactDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Assigning site contact {PersonalInfoId} to job {JobNumber}", dto.PersonalInfoId, jobNumber);
+
+                // Get the job
+                var job = await _dbContext.Jobs
+                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job {jobNumber} not found" });
+                }
+
+                // Verify the person exists
+                var person = await _dbContext.PersonalInfos
+                    .FirstOrDefaultAsync(p => p.Id == dto.PersonalInfoId);
+
+                if (person == null)
+                {
+                    return NotFound(new { message = $"Person with ID {dto.PersonalInfoId} not found" });
+                }
+
+                // Deactivate any existing active site contacts for this job
+                var existingSiteContacts = await _dbContext.JobSiteContacts
+                    .Where(sc => sc.JobId == job.Id && sc.IsActive)
+                    .ToListAsync();
+
+                foreach (var sc in existingSiteContacts)
+                {
+                    sc.IsActive = false;
+                }
+
+                // Create new site contact assignment
+                var newSiteContact = new JobSiteContact
+                {
+                    JobId = job.Id,
+                    PersonalInfoId = dto.PersonalInfoId,
+                    IsPrimary = dto.IsPrimary,
+                    IsActive = true
+                };
+
+                _dbContext.JobSiteContacts.Add(newSiteContact);
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully assigned site contact {PersonalInfoId} to job {JobNumber}", dto.PersonalInfoId, jobNumber);
+
+                return Ok(new
+                {
+                    message = "Site contact assigned successfully",
+                    siteContact = new
+                    {
+                        id = newSiteContact.Id,
+                        personalInfoId = newSiteContact.PersonalInfoId,
+                        fullName = $"{person.FirstName} {person.LastName}",
+                        isPrimary = newSiteContact.IsPrimary,
+                        isActive = newSiteContact.IsActive
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error assigning site contact to job {JobNumber}", jobNumber);
+                return StatusCode(500, new { message = "An error occurred while assigning the site contact" });
+            }
+        }
+
+        /// <summary>
+        /// Remove/deactivate a site contact from a job
+        /// </summary>
+        [HttpDelete("{jobNumber}/site-contact/remove/{siteContactId:int}")]
+        public async Task<ActionResult<object>> RemoveSiteContact(
+            string jobNumber,
+            int siteContactId)
+        {
+            try
+            {
+                _logger.LogInformation("Removing site contact {SiteContactId} from job {JobNumber}", siteContactId, jobNumber);
+
+                var job = await _dbContext.Jobs
+                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job {jobNumber} not found" });
+                }
+
+                var siteContact = await _dbContext.JobSiteContacts
+                    .FirstOrDefaultAsync(sc => sc.Id == siteContactId && sc.JobId == job.Id);
+
+                if (siteContact == null)
+                {
+                    return NotFound(new { message = $"Site contact {siteContactId} not found for job {jobNumber}" });
+                }
+
+                siteContact.IsActive = false;
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully removed site contact {SiteContactId} from job {JobNumber}", siteContactId, jobNumber);
+
+                return Ok(new { message = "Site contact removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing site contact {SiteContactId} from job {JobNumber}", siteContactId, jobNumber);
+                return StatusCode(500, new { message = "An error occurred while removing the site contact" });
+            }
+        }
     }
 }
