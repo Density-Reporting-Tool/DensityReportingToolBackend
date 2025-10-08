@@ -41,9 +41,20 @@ builder.Services.AddCors(options =>
     });
 });
 
-// get our connection string in appsettings.development.json
+// Get connection string from environment variable (for production/DigitalOcean) or appsettings (for local dev)
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+// If DATABASE_URL is in the format postgresql://..., convert it to Npgsql format
+if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgresql://"))
+{
+    var uri = new Uri(connectionString);
+    var userInfo = uri.UserInfo.Split(':');
+    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // Register services
 // Note: Services (JobService, ProctorService, ReportService) are instantiated directly in their controllers, not via DI
