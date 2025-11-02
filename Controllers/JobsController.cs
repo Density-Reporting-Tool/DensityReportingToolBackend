@@ -312,5 +312,132 @@ namespace DensityReportingToolBackend.Controllers
                 return StatusCode(500, new { message = "An error occurred while removing the project manager" });
             }
         }
+
+        // ==================== SITE CONTACT ENDPOINTS ====================
+
+        /// <summary>
+        /// Assign a site contact to a job (deactivates existing active primary contact if assigning a new primary)
+        /// </summary>
+        /// <param name="jobNumber">The job number to assign the site contact to</param>
+        /// <param name="dto">Site contact assignment details</param>
+        /// <returns>Created site contact assignment</returns>
+        [HttpPost("{jobNumber}/site-contact")]
+        public async Task<ActionResult<object>> AssignSiteContact(
+            string jobNumber,
+            [FromBody] AssignSiteContactDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Assigning site contact {PersonalInfoId} to job {JobNumber}", dto.PersonalInfoId, jobNumber);
+
+                // Get the job
+                var job = await _dbContext.Jobs
+                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job {jobNumber} not found" });
+                }
+
+                // Verify the person exists
+                var person = await _dbContext.PersonalInfos
+                    .FirstOrDefaultAsync(p => p.Id == dto.PersonalInfoId);
+
+                if (person == null)
+                {
+                    return NotFound(new { message = $"Person with ID {dto.PersonalInfoId} not found" });
+                }
+
+                // If assigning a primary site contact, deactivate any existing active primary contacts for this job
+                if (dto.IsPrimary)
+                {
+                    var existingPrimaryContacts = await _dbContext.JobSiteContacts
+                        .Where(sc => sc.JobId == job.Id && sc.IsPrimary && sc.IsActive)
+                        .ToListAsync();
+
+                    foreach (var contact in existingPrimaryContacts)
+                    {
+                        contact.IsActive = false;
+                    }
+                }
+
+                // Create new site contact assignment
+                var newSiteContact = new JobSiteContact
+                {
+                    JobId = job.Id,
+                    PersonalInfoId = dto.PersonalInfoId,
+                    IsPrimary = dto.IsPrimary,
+                    IsActive = true
+                };
+
+                _dbContext.JobSiteContacts.Add(newSiteContact);
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully assigned site contact {PersonalInfoId} to job {JobNumber}", dto.PersonalInfoId, jobNumber);
+
+                return Ok(new
+                {
+                    message = "Site contact assigned successfully",
+                    siteContact = new
+                    {
+                        id = newSiteContact.Id,
+                        personalInfoId = newSiteContact.PersonalInfoId,
+                        fullName = $"{person.FirstName} {person.LastName}",
+                        isPrimary = newSiteContact.IsPrimary,
+                        isActive = newSiteContact.IsActive
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error assigning site contact to job {JobNumber}", jobNumber);
+                return StatusCode(500, new { message = "An error occurred while assigning the site contact" });
+            }
+        }
+
+        /// <summary>
+        /// Remove/deactivate a site contact from a job
+        /// </summary>
+        /// <param name="jobNumber">The job number</param>
+        /// <param name="siteContactId">The ID of the site contact to remove</param>
+        /// <returns>Success message</returns>
+        [HttpDelete("{jobNumber}/site-contact/remove/{siteContactId:int}")]
+        public async Task<ActionResult<object>> RemoveSiteContact(
+            string jobNumber,
+            int siteContactId)
+        {
+            try
+            {
+                _logger.LogInformation("Removing site contact {SiteContactId} from job {JobNumber}", siteContactId, jobNumber);
+
+                var job = await _dbContext.Jobs
+                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job {jobNumber} not found" });
+                }
+
+                var siteContact = await _dbContext.JobSiteContacts
+                    .FirstOrDefaultAsync(sc => sc.Id == siteContactId && sc.JobId == job.Id);
+
+                if (siteContact == null)
+                {
+                    return NotFound(new { message = $"Site contact {siteContactId} not found for job {jobNumber}" });
+                }
+
+                siteContact.IsActive = false;
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully removed site contact {SiteContactId} from job {JobNumber}", siteContactId, jobNumber);
+
+                return Ok(new { message = "Site contact removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing site contact {SiteContactId} from job {JobNumber}", siteContactId, jobNumber);
+                return StatusCode(500, new { message = "An error occurred while removing the site contact" });
+            }
+        }
     }
 }
