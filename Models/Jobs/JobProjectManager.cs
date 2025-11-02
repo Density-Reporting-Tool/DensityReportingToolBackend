@@ -12,6 +12,7 @@ public class JobProjectManager: ModelBaseWithDto<JobProjectManager, JobProjectMa
     public DateTime? EndDate { get; set; }  // Null means currently active
 
     public string? Notes { get; set; }      // e.g., "Primary contact", "Backup contact", "Available 9-5"
+    public bool IsPrimary { get; set; } = true; // Primary project manager for the job
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
@@ -27,6 +28,7 @@ public class JobProjectManagerBaseDto
     public DateTime? EndDate { get; set; }
 
     public string? Notes { get; set; }
+    public bool IsPrimary { get; set; }
     public bool IsActive { get; set; }
 }
 
@@ -53,6 +55,7 @@ public class JobProjectManagerReadDto : JobProjectManagerBaseDto
         StartDate = pm.StartDate;
         EndDate = pm.EndDate;
         Notes = pm.Notes;
+        IsPrimary = pm.IsPrimary;
         IsActive = pm.IsActive;
 
         FullName = $"{pm.PersonalInfo?.FirstName} {pm.PersonalInfo?.LastName}".Trim();

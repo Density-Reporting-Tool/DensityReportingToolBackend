@@ -71,6 +71,12 @@ namespace DensityReportingToolBackend.Data
                 .HasForeignKey(jpm => jpm.PersonalInfoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Ensure only one active primary project manager per job at a time
+            modelBuilder.Entity<JobProjectManager>()
+                .HasIndex(jpm => new { jpm.JobId, jpm.IsPrimary, jpm.IsActive })
+                .HasFilter("\"IsPrimary\" = true AND \"IsActive\" = true")
+                .IsUnique();
+
             modelBuilder.Entity<JobSiteContact>()
                 .HasOne(jsc => jsc.Job)
                 .WithMany(j => j.SiteContacts)
