@@ -267,5 +267,50 @@ namespace DensityReportingToolBackend.Controllers
                 return StatusCode(500, new { message = "An error occurred while assigning the project manager" });
             }
         }
+
+        /// <summary>
+        /// Remove/deactivate a project manager from a job
+        /// </summary>
+        /// <param name="jobNumber">The job number</param>
+        /// <param name="projectManagerId">The ID of the project manager to remove</param>
+        /// <returns>Success message</returns>
+        [HttpDelete("{jobNumber}/project-manager/remove/{projectManagerId:int}")]
+        public async Task<ActionResult<object>> RemoveProjectManager(
+            string jobNumber,
+            int projectManagerId)
+        {
+            try
+            {
+                _logger.LogInformation("Removing PM {ProjectManagerId} from job {JobNumber}", projectManagerId, jobNumber);
+
+                var job = await _dbContext.Jobs
+                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job {jobNumber} not found" });
+                }
+
+                var projectManager = await _dbContext.JobProjectManagers
+                    .FirstOrDefaultAsync(pm => pm.Id == projectManagerId && pm.JobId == job.Id);
+
+                if (projectManager == null)
+                {
+                    return NotFound(new { message = $"Project manager {projectManagerId} not found for job {jobNumber}" });
+                }
+
+                projectManager.IsActive = false;
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully removed PM {ProjectManagerId} from job {JobNumber}", projectManagerId, jobNumber);
+
+                return Ok(new { message = "Project manager removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing PM {ProjectManagerId} from job {JobNumber}", projectManagerId, jobNumber);
+                return StatusCode(500, new { message = "An error occurred while removing the project manager" });
+            }
+        }
     }
 }
