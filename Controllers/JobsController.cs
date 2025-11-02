@@ -184,5 +184,88 @@ namespace DensityReportingToolBackend.Controllers
 
             return Ok(jobDtos);
         }
+
+        // ==================== PROJECT MANAGER ENDPOINTS ====================
+
+        /// <summary>
+        /// Assign a project manager to a job (deactivates existing active primary PM if assigning a new primary)
+        /// </summary>
+        /// <param name="jobNumber">The job number to assign the PM to</param>
+        /// <param name="dto">Project manager assignment details</param>
+        /// <returns>Created project manager assignment</returns>
+        [HttpPost("{jobNumber}/project-manager")]
+        public async Task<ActionResult<object>> AssignProjectManager(
+            string jobNumber,
+            [FromBody] AssignProjectManagerDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Assigning PM {PersonalInfoId} to job {JobNumber}", dto.PersonalInfoId, jobNumber);
+
+                // Get the job
+                var job = await _dbContext.Jobs
+                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job {jobNumber} not found" });
+                }
+
+                // Verify the person exists
+                var person = await _dbContext.PersonalInfos
+                    .FirstOrDefaultAsync(p => p.Id == dto.PersonalInfoId);
+
+                if (person == null)
+                {
+                    return NotFound(new { message = $"Person with ID {dto.PersonalInfoId} not found" });
+                }
+
+                // If assigning a primary PM, deactivate any existing active primary PMs for this job
+                if (dto.IsPrimary)
+                {
+                    var existingPrimaryPMs = await _dbContext.JobProjectManagers
+                        .Where(pm => pm.JobId == job.Id && pm.IsPrimary && pm.IsActive)
+                        .ToListAsync();
+
+                    foreach (var pm in existingPrimaryPMs)
+                    {
+                        pm.IsActive = false;
+                    }
+                }
+
+                // Create new project manager assignment
+                var newPM = new JobProjectManager
+                {
+                    JobId = job.Id,
+                    PersonalInfoId = dto.PersonalInfoId,
+                    StartDate = DateTime.UtcNow,
+                    IsPrimary = dto.IsPrimary,
+                    IsActive = true
+                };
+
+                _dbContext.JobProjectManagers.Add(newPM);
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully assigned PM {PersonalInfoId} to job {JobNumber}", dto.PersonalInfoId, jobNumber);
+
+                return Ok(new
+                {
+                    message = "Project manager assigned successfully",
+                    projectManager = new
+                    {
+                        id = newPM.Id,
+                        personalInfoId = newPM.PersonalInfoId,
+                        fullName = $"{person.FirstName} {person.LastName}",
+                        isPrimary = newPM.IsPrimary,
+                        isActive = newPM.IsActive
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error assigning PM to job {JobNumber}", jobNumber);
+                return StatusCode(500, new { message = "An error occurred while assigning the project manager" });
+            }
+        }
     }
 }
