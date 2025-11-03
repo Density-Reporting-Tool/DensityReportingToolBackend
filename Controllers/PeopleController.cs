@@ -18,79 +18,6 @@ namespace DensityReportingToolBackend.Controllers
             _dbContext = dbContext;
         }
 
-        // Create a new GeoPacific employee
-        [HttpPost("employees")]
-        public async Task<ActionResult<GeoPacificEmployee>> CreateEmployee([FromBody] CreateEmployeeRequest request)
-        {
-            try
-            {
-                // Create PersonalInfo first
-                var personalInfo = new PersonalInfo
-                {
-                    FirstName = request.FirstName,
-                    LastName = request.LastName,
-                    Email = request.Email,
-                    PhoneNumber = request.PhoneNumber
-                };
-
-                _dbContext.PersonalInfos.Add(personalInfo);
-                await _dbContext.SaveChangesAsync();
-
-                // Create GeoPacificEmployee
-                var employee = new GeoPacificEmployee
-                {
-                    PersonalInfoId = personalInfo.Id,
-                    RoleId = request.RoleId,
-                    Password = request.Password
-                };
-
-                _dbContext.GeoPacificEmployees.Add(employee);
-                await _dbContext.SaveChangesAsync();
-
-                // Return the created employee with all related data
-                var result = await _dbContext.GeoPacificEmployees
-                    .Include(e => e.PersonalInfo)
-                    .Include(e => e.Role)
-                    .FirstOrDefaultAsync(e => e.Id == employee.Id);
-
-                return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating employee");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-
-
-        // Get a specific employee
-        [HttpGet("employees/{id}")]
-        public async Task<ActionResult<object>> GetEmployee(int id)
-        {
-            var employee = await _dbContext.GeoPacificEmployees
-                .Include(e => e.PersonalInfo)
-                .Include(e => e.Role)
-                .FirstOrDefaultAsync(e => e.Id == id);
-
-            if (employee == null)
-                return NotFound();
-
-                            return new
-                {
-                    employee.Id,
-                    employee.PersonalInfo.FirstName,
-                    employee.PersonalInfo.LastName,
-                    employee.PersonalInfo.Email,
-                    employee.PersonalInfo.PhoneNumber,
-                    RoleId = employee.RoleId,
-                    RoleTitle = employee.Role?.RoleTitle,
-                    PersonType = "GeoPacific Employee"
-                };
-        }
-
-
-
         // Get all people with their type
         [HttpGet]
         public async Task<ActionResult<IEnumerable<object>>> GetAllPeople()
@@ -114,9 +41,10 @@ namespace DensityReportingToolBackend.Controllers
             return Ok(people);
         }
 
-        // Create a contractor (PersonalInfo with Company)
-        [HttpPost("contractors")]
-        public async Task<ActionResult<PersonalInfo>> CreateContractor([FromBody] CreateContractorRequest request)
+        // Create a new contact (PersonalInfo with optional Company)
+        // This endpoint handles all contacts: regular contacts, contractors, and GeoPacific employees
+        [HttpPost]
+        public async Task<ActionResult<object>> CreateContact([FromBody] CreateContactRequest request)
         {
             try
             {
@@ -126,42 +54,41 @@ namespace DensityReportingToolBackend.Controllers
                     LastName = request.LastName,
                     Email = request.Email,
                     PhoneNumber = request.PhoneNumber,
-                    Company = request.Company
+                    Company = request.Company // Optional - can be null
                 };
 
                 _dbContext.PersonalInfos.Add(personalInfo);
                 await _dbContext.SaveChangesAsync();
 
-                return CreatedAtAction(nameof(GetEmployee), new { id = personalInfo.Id }, personalInfo);
+                // Return the created contact in the format expected by the frontend
+                return CreatedAtAction(nameof(GetAllPeople), new { id = personalInfo.Id }, new
+                {
+                    id = personalInfo.Id,
+                    firstName = personalInfo.FirstName,
+                    lastName = personalInfo.LastName,
+                    email = personalInfo.Email,
+                    phoneNumber = personalInfo.PhoneNumber,
+                    company = personalInfo.Company,
+                    personType = "Contact"
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating contractor");
+                _logger.LogError(ex, "Error creating contact");
                 return StatusCode(500, "Internal server error");
             }
         }
 
     }
 
-    // Request models
-    public class CreateEmployeeRequest
+    // Request model
+    public class CreateContactRequest
     {
         public required string FirstName { get; set; }
         public required string LastName { get; set; }
         public required string Email { get; set; }
         public required string PhoneNumber { get; set; }
-        public required int RoleId { get; set; }
-        public required string Password { get; set; }
+        public string? Company { get; set; }
     }
-
-    public class CreateContractorRequest
-    {
-        public required string FirstName { get; set; }
-        public required string LastName { get; set; }
-        public required string Email { get; set; }
-        public required string PhoneNumber { get; set; }
-        public required string Company { get; set; }
-    }
-
 
 }
