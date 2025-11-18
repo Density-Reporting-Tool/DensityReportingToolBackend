@@ -26,6 +26,7 @@ publish/
 
 # User secrets
 appsettings.Development.json
+appsettings.json
 secrets.json
 
 # Test files (keep test scripts but ignore test results)
