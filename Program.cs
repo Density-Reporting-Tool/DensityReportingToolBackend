@@ -3,6 +3,7 @@
 using DensityReportingToolBackend.Data;
 using DensityReportingToolBackend.Models;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,10 +73,30 @@ app.UseAuthorization();
 // Maps your controllers so they handle incoming requests
 app.MapControllers();
 
-// Seed data
+// Apply migrations and seed data
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    
+    try
+    {
+        // Apply pending migrations
+        logger.LogInformation("Applying database migrations...");
+        await context.Database.MigrateAsync();
+        logger.LogInformation("Database migrations applied successfully.");
+    }
+    catch (PostgresException pgEx) when (pgEx.SqlState == "42P07") // Table already exists
+    {
+        logger.LogWarning("Database tables already exist. Migration history may be out of sync. Continuing with application startup.");
+        // The database structure exists, so we can continue
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while applying migrations. The database may already be up to date.");
+        // Continue with seeding even if migrations fail (database might already be migrated)
+    }
+    
     await SeedData(context);
 }
 
