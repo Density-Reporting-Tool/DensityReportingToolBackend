@@ -98,5 +98,6 @@ public class JobReadDto : JobBaseDto
         Reports = job.Reports?.Select(r => r?.ToDTO()) ?? [];
         ProjectManagers = job.ProjectManagers?.Select(pm => pm?.ToDto(visited)) ?? [];
         SiteContacts = job.SiteContacts?.Select(sc => sc?.ToDto(visited)) ?? [];
+        JobNotes = job.JobNotes?.Select(note => note != null ? new JobNoteReadDto(note) : null) ?? [];
     }
 }

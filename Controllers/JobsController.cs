@@ -4,6 +4,7 @@ using DensityReportingToolBackend.Services;
 using DensityReportingToolBackend.Validators;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace DensityReportingToolBackend.Controllers
 {
@@ -165,6 +166,78 @@ namespace DensityReportingToolBackend.Controllers
                 {
                     message = "An error occurred while updating the job"
                 });
+            }
+        }
+
+        [HttpPost("{jobNumber}/notes")]
+        public async Task<ActionResult<object>> AddJobNote(string jobNumber, [FromBody] CreateJobNoteRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Note))
+            {
+                return BadRequest(new { message = "Note content is required." });
+            }
+
+            try
+            {
+                _logger.LogInformation("Adding note to job {JobNumber}", jobNumber);
+
+                var job = await _dbContext.Jobs.FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job with number {jobNumber} not found" });
+                }
+
+                var jobNote = new JobNote
+                {
+                    JobId = job.Id,
+                    Note = request.Note.Trim(),
+                    CreatedDate = DateTime.UtcNow
+                };
+
+                _dbContext.JobNotes.Add(jobNote);
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully added note {JobNoteId} to job {JobNumber}", jobNote.Id, jobNumber);
+
+                return Ok(new JobNoteReadDto(jobNote));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding note to job {JobNumber}", jobNumber);
+                return StatusCode(500, new { message = "An error occurred while adding the job note" });
+            }
+        }
+
+        [HttpDelete("{jobNumber}/notes/{noteId:int}")]
+        public async Task<ActionResult<object>> DeleteJobNote(string jobNumber, int noteId)
+        {
+            try
+            {
+                _logger.LogInformation("Deleting note {JobNoteId} from job {JobNumber}", noteId, jobNumber);
+
+                var job = await _dbContext.Jobs.FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job with number {jobNumber} not found" });
+                }
+
+                var jobNote = await _dbContext.JobNotes.FirstOrDefaultAsync(jn => jn.Id == noteId && jn.JobId == job.Id);
+                if (jobNote == null)
+                {
+                    return NotFound(new { message = $"Job note {noteId} not found for job {jobNumber}" });
+                }
+
+                _dbContext.JobNotes.Remove(jobNote);
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully deleted note {JobNoteId} from job {JobNumber}", noteId, jobNumber);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting note {JobNoteId} from job {JobNumber}", noteId, jobNumber);
+                return StatusCode(500, new { message = "An error occurred while deleting the job note" });
             }
         }
 
@@ -438,6 +511,12 @@ namespace DensityReportingToolBackend.Controllers
                 _logger.LogError(ex, "Error removing site contact {SiteContactId} from job {JobNumber}", siteContactId, jobNumber);
                 return StatusCode(500, new { message = "An error occurred while removing the site contact" });
             }
+        }
+
+        public class CreateJobNoteRequest
+        {
+            [Required]
+            public string Note { get; set; } = string.Empty;
         }
     }
 }
