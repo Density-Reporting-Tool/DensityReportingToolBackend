@@ -269,7 +269,7 @@ namespace DensityReportingToolBackend.Controllers
         [HttpPost("{jobNumber}/project-manager")]
         public async Task<ActionResult<object>> AssignProjectManager(
             string jobNumber,
-            [FromBody] AssignProjectManagerDto dto)
+            [FromBody] JobProjectManagerCreateDto dto)
         {
             try
             {
@@ -303,6 +303,8 @@ namespace DensityReportingToolBackend.Controllers
                     foreach (var pm in existingPrimaryPMs)
                     {
                         pm.IsActive = false;
+                        pm.EndDate = DateTime.UtcNow;
+                        pm.LastModifiedDate = DateTime.UtcNow;
                     }
                 }
 
@@ -311,28 +313,25 @@ namespace DensityReportingToolBackend.Controllers
                 {
                     JobId = job.Id,
                     PersonalInfoId = dto.PersonalInfoId,
-                    StartDate = DateTime.UtcNow,
+                    StartDate = dto.StartDate,
+                    EndDate = dto.EndDate,
+                    Notes = dto.Notes,
                     IsPrimary = dto.IsPrimary,
-                    IsActive = true
+                    IsActive = dto.IsActive
                 };
 
                 _dbContext.JobProjectManagers.Add(newPM);
                 await _dbContext.SaveChangesAsync();
 
+                // Load the PersonalInfo for the response
+                await _dbContext.Entry(newPM).Reference(pm => pm.PersonalInfo).LoadAsync();
+
+                var visited = new HashSet<(Type, int)>();
+                var readDto = new JobProjectManagerReadDto(newPM, visited);
+
                 _logger.LogInformation("Successfully assigned PM {PersonalInfoId} to job {JobNumber}", dto.PersonalInfoId, jobNumber);
 
-                return Ok(new
-                {
-                    message = "Project manager assigned successfully",
-                    projectManager = new
-                    {
-                        id = newPM.Id,
-                        personalInfoId = newPM.PersonalInfoId,
-                        fullName = $"{person.FirstName} {person.LastName}",
-                        isPrimary = newPM.IsPrimary,
-                        isActive = newPM.IsActive
-                    }
-                });
+                return Ok(readDto);
             }
             catch (Exception ex)
             {
@@ -342,12 +341,100 @@ namespace DensityReportingToolBackend.Controllers
         }
 
         /// <summary>
+        /// Update an existing project manager assignment
+        /// </summary>
+        /// <param name="jobNumber">The job number</param>
+        /// <param name="projectManagerId">The ID of the project manager to update</param>
+        /// <param name="dto">Updated project manager details</param>
+        /// <returns>Updated project manager assignment</returns>
+        [HttpPut("{jobNumber}/project-manager/{projectManagerId:int}")]
+        public async Task<ActionResult<object>> UpdateProjectManager(
+            string jobNumber,
+            int projectManagerId,
+            [FromBody] JobProjectManagerUpdateDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Updating PM {ProjectManagerId} for job {JobNumber}", projectManagerId, jobNumber);
+
+                var job = await _dbContext.Jobs
+                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job {jobNumber} not found" });
+                }
+
+                var projectManager = await _dbContext.JobProjectManagers
+                    .Include(pm => pm.PersonalInfo)
+                    .FirstOrDefaultAsync(pm => pm.Id == projectManagerId && pm.JobId == job.Id);
+
+                if (projectManager == null)
+                {
+                    return NotFound(new { message = $"Project manager {projectManagerId} not found for job {jobNumber}" });
+                }
+
+                // Verify the person exists if PersonalInfoId is being changed
+                if (dto.PersonalInfoId != projectManager.PersonalInfoId)
+                {
+                    var person = await _dbContext.PersonalInfos
+                        .FirstOrDefaultAsync(p => p.Id == dto.PersonalInfoId);
+
+                    if (person == null)
+                    {
+                        return NotFound(new { message = $"Person with ID {dto.PersonalInfoId} not found" });
+                    }
+                }
+
+                // If making this primary, deactivate other primary PMs
+                if (dto.IsPrimary && !projectManager.IsPrimary)
+                {
+                    var existingPrimaryPMs = await _dbContext.JobProjectManagers
+                        .Where(pm => pm.JobId == job.Id && pm.Id != projectManagerId && pm.IsPrimary && pm.IsActive)
+                        .ToListAsync();
+
+                    foreach (var pm in existingPrimaryPMs)
+                    {
+                        pm.IsPrimary = false;
+                        pm.LastModifiedDate = DateTime.UtcNow;
+                    }
+                }
+
+                // Update the project manager
+                projectManager.PersonalInfoId = dto.PersonalInfoId;
+                projectManager.StartDate = dto.StartDate;
+                projectManager.EndDate = dto.EndDate;
+                projectManager.Notes = dto.Notes;
+                projectManager.IsPrimary = dto.IsPrimary;
+                projectManager.IsActive = dto.IsActive;
+                projectManager.LastModifiedDate = DateTime.UtcNow;
+
+                await _dbContext.SaveChangesAsync();
+
+                // Reload to get updated PersonalInfo
+                await _dbContext.Entry(projectManager).Reference(pm => pm.PersonalInfo).LoadAsync();
+
+                var visited = new HashSet<(Type, int)>();
+                var readDto = new JobProjectManagerReadDto(projectManager, visited);
+
+                _logger.LogInformation("Successfully updated PM {ProjectManagerId} for job {JobNumber}", projectManagerId, jobNumber);
+
+                return Ok(readDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating PM {ProjectManagerId} for job {JobNumber}", projectManagerId, jobNumber);
+                return StatusCode(500, new { message = "An error occurred while updating the project manager" });
+            }
+        }
+
+        /// <summary>
         /// Remove/deactivate a project manager from a job
         /// </summary>
         /// <param name="jobNumber">The job number</param>
         /// <param name="projectManagerId">The ID of the project manager to remove</param>
         /// <returns>Success message</returns>
-        [HttpDelete("{jobNumber}/project-manager/remove/{projectManagerId:int}")]
+        [HttpDelete("{jobNumber}/project-manager/{projectManagerId:int}")]
         public async Task<ActionResult<object>> RemoveProjectManager(
             string jobNumber,
             int projectManagerId)
@@ -373,6 +460,8 @@ namespace DensityReportingToolBackend.Controllers
                 }
 
                 projectManager.IsActive = false;
+                projectManager.EndDate = DateTime.UtcNow;
+                projectManager.LastModifiedDate = DateTime.UtcNow;
                 await _dbContext.SaveChangesAsync();
 
                 _logger.LogInformation("Successfully removed PM {ProjectManagerId} from job {JobNumber}", projectManagerId, jobNumber);
@@ -397,7 +486,7 @@ namespace DensityReportingToolBackend.Controllers
         [HttpPost("{jobNumber}/site-contact")]
         public async Task<ActionResult<object>> AssignSiteContact(
             string jobNumber,
-            [FromBody] AssignSiteContactDto dto)
+            [FromBody] JobSiteContactCreateDto dto)
         {
             try
             {
@@ -431,6 +520,7 @@ namespace DensityReportingToolBackend.Controllers
                     foreach (var contact in existingPrimaryContacts)
                     {
                         contact.IsActive = false;
+                        contact.LastModifiedDate = DateTime.UtcNow;
                     }
                 }
 
@@ -439,27 +529,26 @@ namespace DensityReportingToolBackend.Controllers
                 {
                     JobId = job.Id,
                     PersonalInfoId = dto.PersonalInfoId,
+                    Area = dto.Area,
+                    Company = dto.Company,
+                    Role = dto.Role,
                     IsPrimary = dto.IsPrimary,
-                    IsActive = true
+                    Notes = dto.Notes,
+                    IsActive = dto.IsActive
                 };
 
                 _dbContext.JobSiteContacts.Add(newSiteContact);
                 await _dbContext.SaveChangesAsync();
 
+                // Load the PersonalInfo for the response
+                await _dbContext.Entry(newSiteContact).Reference(sc => sc.PersonalInfo).LoadAsync();
+
+                var visited = new HashSet<(Type, int)>();
+                var readDto = new JobSiteContactReadDto(newSiteContact, visited);
+
                 _logger.LogInformation("Successfully assigned site contact {PersonalInfoId} to job {JobNumber}", dto.PersonalInfoId, jobNumber);
 
-                return Ok(new
-                {
-                    message = "Site contact assigned successfully",
-                    siteContact = new
-                    {
-                        id = newSiteContact.Id,
-                        personalInfoId = newSiteContact.PersonalInfoId,
-                        fullName = $"{person.FirstName} {person.LastName}",
-                        isPrimary = newSiteContact.IsPrimary,
-                        isActive = newSiteContact.IsActive
-                    }
-                });
+                return Ok(readDto);
             }
             catch (Exception ex)
             {
@@ -469,12 +558,101 @@ namespace DensityReportingToolBackend.Controllers
         }
 
         /// <summary>
+        /// Update an existing site contact assignment
+        /// </summary>
+        /// <param name="jobNumber">The job number</param>
+        /// <param name="siteContactId">The ID of the site contact to update</param>
+        /// <param name="dto">Updated site contact details</param>
+        /// <returns>Updated site contact assignment</returns>
+        [HttpPut("{jobNumber}/site-contact/{siteContactId:int}")]
+        public async Task<ActionResult<object>> UpdateSiteContact(
+            string jobNumber,
+            int siteContactId,
+            [FromBody] JobSiteContactUpdateDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Updating site contact {SiteContactId} for job {JobNumber}", siteContactId, jobNumber);
+
+                var job = await _dbContext.Jobs
+                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+                if (job == null)
+                {
+                    return NotFound(new { message = $"Job {jobNumber} not found" });
+                }
+
+                var siteContact = await _dbContext.JobSiteContacts
+                    .Include(sc => sc.PersonalInfo)
+                    .FirstOrDefaultAsync(sc => sc.Id == siteContactId && sc.JobId == job.Id);
+
+                if (siteContact == null)
+                {
+                    return NotFound(new { message = $"Site contact {siteContactId} not found for job {jobNumber}" });
+                }
+
+                // Verify the person exists if PersonalInfoId is being changed
+                if (dto.PersonalInfoId != siteContact.PersonalInfoId)
+                {
+                    var person = await _dbContext.PersonalInfos
+                        .FirstOrDefaultAsync(p => p.Id == dto.PersonalInfoId);
+
+                    if (person == null)
+                    {
+                        return NotFound(new { message = $"Person with ID {dto.PersonalInfoId} not found" });
+                    }
+                }
+
+                // If making this primary, deactivate other primary contacts
+                if (dto.IsPrimary && !siteContact.IsPrimary)
+                {
+                    var existingPrimaryContacts = await _dbContext.JobSiteContacts
+                        .Where(sc => sc.JobId == job.Id && sc.Id != siteContactId && sc.IsPrimary && sc.IsActive)
+                        .ToListAsync();
+
+                    foreach (var contact in existingPrimaryContacts)
+                    {
+                        contact.IsPrimary = false;
+                        contact.LastModifiedDate = DateTime.UtcNow;
+                    }
+                }
+
+                // Update the site contact
+                siteContact.PersonalInfoId = dto.PersonalInfoId;
+                siteContact.Area = dto.Area;
+                siteContact.Company = dto.Company;
+                siteContact.Role = dto.Role;
+                siteContact.IsPrimary = dto.IsPrimary;
+                siteContact.Notes = dto.Notes;
+                siteContact.IsActive = dto.IsActive;
+                siteContact.LastModifiedDate = DateTime.UtcNow;
+
+                await _dbContext.SaveChangesAsync();
+
+                // Reload to get updated PersonalInfo
+                await _dbContext.Entry(siteContact).Reference(sc => sc.PersonalInfo).LoadAsync();
+
+                var visited = new HashSet<(Type, int)>();
+                var readDto = new JobSiteContactReadDto(siteContact, visited);
+
+                _logger.LogInformation("Successfully updated site contact {SiteContactId} for job {JobNumber}", siteContactId, jobNumber);
+
+                return Ok(readDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating site contact {SiteContactId} for job {JobNumber}", siteContactId, jobNumber);
+                return StatusCode(500, new { message = "An error occurred while updating the site contact" });
+            }
+        }
+
+        /// <summary>
         /// Remove/deactivate a site contact from a job
         /// </summary>
         /// <param name="jobNumber">The job number</param>
         /// <param name="siteContactId">The ID of the site contact to remove</param>
         /// <returns>Success message</returns>
-        [HttpDelete("{jobNumber}/site-contact/remove/{siteContactId:int}")]
+        [HttpDelete("{jobNumber}/site-contact/{siteContactId:int}")]
         public async Task<ActionResult<object>> RemoveSiteContact(
             string jobNumber,
             int siteContactId)
@@ -500,6 +678,7 @@ namespace DensityReportingToolBackend.Controllers
                 }
 
                 siteContact.IsActive = false;
+                siteContact.LastModifiedDate = DateTime.UtcNow;
                 await _dbContext.SaveChangesAsync();
 
                 _logger.LogInformation("Successfully removed site contact {SiteContactId} from job {JobNumber}", siteContactId, jobNumber);
