@@ -1,4 +1,4 @@
-using DensityReportingToolBackend.Models;
+using DensityReportingToolBackend.DTOs.Jobs;
 
 namespace DensityReportingToolBackend.Validators;
 

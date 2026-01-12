@@ -1,6 +1,6 @@
 namespace DensityReportingToolBackend.Models;
 
-public class Job: ModelBaseWithDto<Job, JobReadDto>
+public class Job: ModelBase
 {
     // Job number - can be numeric (e.g., "25482") or alphanumeric (e.g., "15827-A")
     public required string JobNumber { get; set; }
@@ -56,47 +56,4 @@ public static class JobExtensions
     public static IEnumerable<Proctor> GetReusedProctors(this Job job) =>
         job.ProctorAdditionalJobs?.Select(paj => paj.Proctor)
         ?? [];
-}
-
-public class JobBaseDto
-{
-    public string JobNumber { get; set; } = string.Empty;
-    public string ClientName { get; set; } = string.Empty;
-    public string ProjectName { get; set; } = string.Empty;
-    public string SiteAddress { get; set; } = string.Empty;
-    public DateTime? StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
-
-    public IEnumerable<JobNoteReadDto?> JobNotes { get; set; } = [];
-}
-
-public class JobCreateDto : JobBaseDto
-{ 
-}
-public class JobUpdateDto : JobBaseDto
-{
-    public int Id { get; set; }    
-}
-public class JobReadDto : JobBaseDto
-{
-    public int Id { get; set; }
-    public IEnumerable<ReportReadDto?> Reports { get; set; } = [];
-    public IEnumerable<JobProjectManagerReadDto?> ProjectManagers { get; set; } = [];
-    public IEnumerable<JobSiteContactReadDto?> SiteContacts { get; set; } = [];
-
-    public JobReadDto(Job job, HashSet<(Type, int)> visited)
-    {
-        Id = job.Id;
-        JobNumber = job.JobNumber;
-        ClientName = job.ClientName;
-        ProjectName = job.ProjectName;
-        SiteAddress = job.SiteAddress;
-        StartDate = job.StartDate;
-        EndDate = job.EndDate;
-
-        // Null-safe mapping
-        Reports = job.Reports?.Select(r => r?.ToDTO()) ?? [];
-        ProjectManagers = job.ProjectManagers?.Select(pm => pm?.ToDto(visited)) ?? [];
-        SiteContacts = job.SiteContacts?.Select(sc => sc?.ToDto(visited)) ?? [];
-    }
 }

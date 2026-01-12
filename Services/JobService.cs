@@ -1,5 +1,6 @@
 using DensityReportingToolBackend.Data;
 using DensityReportingToolBackend.Models;
+using DensityReportingToolBackend.DTOs.Jobs;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -56,21 +57,6 @@ public async Task<Job> CreateJob(JobCreateDto dto)
         StartDate = dto.StartDate,
         EndDate = dto.EndDate
     };
-    if (dto.JobNotes != null)
-    {
-        foreach (var noteDto in dto.JobNotes)
-        {
-            if (noteDto != null)
-            {
-                job.JobNotes.Add(new JobNote
-                {
-                    JobId = job.Id,
-                    Note = noteDto.Note,
-                    CreatedDate = noteDto.CreatedDate != default ? noteDto.CreatedDate : DateTime.UtcNow
-                });
-            }
-        }
-    }
 
     dbContext.Jobs.Add(job);
     await dbContext.SaveChangesAsync();
@@ -104,22 +90,6 @@ public async Task<Job> UpdateJob(int jobId, JobUpdateDto dto)
 
     if (dto.EndDate.HasValue)
         job.EndDate = dto.EndDate;
-
-    if (dto.JobNotes != null)
-    {
-        foreach (var noteDto in dto.JobNotes)
-        {
-            if (noteDto != null && !string.IsNullOrWhiteSpace(noteDto.Note))
-            {
-                job.JobNotes.Add(new JobNote
-                {
-                    JobId = job.Id,
-                    Note = noteDto.Note,
-                    CreatedDate = noteDto.CreatedDate != default ? noteDto.CreatedDate : DateTime.UtcNow
-                });
-            }
-        }
-    }
 
     await dbContext.SaveChangesAsync();
     return job;
