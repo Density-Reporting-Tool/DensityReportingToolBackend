@@ -1,3 +1,5 @@
+using DensityReportingToolBackend.DTOs.Jobs;
+
 namespace DensityReportingToolBackend.Models;
 
 public class JobProjectManager: ModelBaseWithDto<JobProjectManager, JobProjectManagerReadDto>
@@ -60,6 +62,5 @@ public class JobProjectManagerReadDto : JobProjectManagerBaseDto
         LastModifiedDate = pm.LastModifiedDate;
 
         PersonalInfo = pm.PersonalInfo?.ToDto(visited);
-        Job = pm.Job?.ToDto(visited);
     }
 }
