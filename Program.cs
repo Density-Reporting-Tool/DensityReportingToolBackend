@@ -2,9 +2,15 @@
 //args comes from the command line and can be used for custom configuration.
 using DensityReportingToolBackend.Data;
 using DensityReportingToolBackend.Models;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddAutoMapper(typeof(Program));
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // Add services to the container.
 //Registers MVC controllers so your API endpoints can respond to requests.
