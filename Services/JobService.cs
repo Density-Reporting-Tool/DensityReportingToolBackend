@@ -1,10 +1,9 @@
-using DensityReportingToolBackend.Data;
-using DensityReportingToolBackend.Models;
-using DensityReportingToolBackend.DTOs.Jobs;
-
 using Microsoft.EntityFrameworkCore;
 using DensityReportingToolBackend.Repositories;
 using AutoMapper;
+
+using DensityReportingToolBackend.Models;
+using DensityReportingToolBackend.DTOs.Jobs;
 
 namespace DensityReportingToolBackend.Services;
 
