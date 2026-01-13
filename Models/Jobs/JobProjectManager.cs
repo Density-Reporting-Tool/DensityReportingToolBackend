@@ -2,7 +2,7 @@ using DensityReportingToolBackend.DTOs.Jobs;
 
 namespace DensityReportingToolBackend.Models;
 
-public class JobProjectManager: ModelBaseWithDto<JobProjectManager, JobProjectManagerReadDto>
+public class JobProjectManager: ModelBase
 {
     public int JobId { get; set; }
     public Job Job { get; set; } = null!;
