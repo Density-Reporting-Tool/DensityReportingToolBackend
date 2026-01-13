@@ -26,7 +26,7 @@ namespace DensityReportingToolBackend.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<JobReadDto>> Create(JobCreateDto dto)
+        public async Task<ActionResult<JobReadDto>> CreateJob(JobCreateDto dto)
         {
             var result = await jobService.CreateJobAsync(dto);
             return CreatedAtAction(nameof(GetAllJobs), new { id = result.Id }, result);
@@ -52,58 +52,6 @@ namespace DensityReportingToolBackend.Controllers
 
             return Ok(jobDto);
         }
-
-        /// <summary>
-        /// Create a new job
-        /// </summary>
-        /// <param name="jobDto">Job creation request with all job details</param>
-        /// <returns>Created job information</returns>
-        // [HttpPost]
-        // public async Task<ActionResult<object>> CreateJob([FromBody] JobCreateDto jobDto)
-        // {
-        //     try
-        //     {
-        //         _logger.LogInformation("Creating new job with number: {JobNumber}", jobDto.JobNumber);
-
-        //         // Validate required fields
-        //         var validation = JobValidator.Validate(jobDto);
-
-        //         if (!validation.IsValid)
-        //         {
-        //             return BadRequest(new
-        //             {
-        //                 errors = validation.Errors
-        //             });
-        //         }
-
-        //         // Check if job number already exists
-        //         var existingJob = await _dbContext.Jobs
-        //             .FirstOrDefaultAsync(j => j.JobNumber == jobDto.JobNumber);
-
-        //         if (existingJob != null)
-        //         {
-        //             return BadRequest(new { message = $"Job with number {jobDto.JobNumber} already exists" });
-        //         }
-
-        //         // Create new job
-        //         var newJob = await _jobService.CreateJob(jobDto);
-
-        //         // TODO Add job note if provided
-
-        //         _logger.LogInformation("Successfully created job with ID: {JobId} and number: {JobNumber}",
-        //             newJob.Id, newJob.JobNumber);
-
-        //         return CreatedAtAction(nameof(GetJob), new { jobNumber = newJob.JobNumber }, newJob.ToDto());
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogError(ex, "Error creating job with number: {JobNumber}", jobDto.JobNumber);
-        //         return StatusCode(500, new
-        //         {
-        //             message = "An error occurred while creating the job"
-        //         });
-        //     }
-        // }
 
         // [HttpPut("{jobId}")]
         // public async Task<ActionResult<object>> UpdateJob(int jobId, [FromBody] JobUpdateDto jobDto)
