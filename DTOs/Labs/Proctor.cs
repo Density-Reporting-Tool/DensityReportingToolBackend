@@ -18,6 +18,8 @@ public abstract record ProctorBaseDto
     public double? OptimumMoistureContent { get; init; }
     public double? SpecificGravity { get; init; }
     public double? OversizePercentage { get; init; }
+
+    public ProctorTypeReadDto ProctorType { get; init; } = null!;
 }
 
 public record ProctorReadDto : ProctorBaseDto
@@ -25,7 +27,6 @@ public record ProctorReadDto : ProctorBaseDto
     public int Id { get; init; }
     public LabTestReadDto LabTest { get; init; } = null!;
     public SieveReadDto? Sieve { get; init; }
-    public ProctorTypeReadDto ProctorType { get; init; } = null!;
     public ICollection<ProctorAdditionalJobReadDto> AdditionalJobs { get; init; } = [];
     public ICollection<DensityTestReadDto> DensityTests { get; init; } = [];
 }
