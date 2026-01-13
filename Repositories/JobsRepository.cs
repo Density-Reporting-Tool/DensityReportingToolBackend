@@ -3,37 +3,52 @@ using DensityReportingToolBackend.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace DensityReportingToolBackend.Repositories;
+using DensityReportingToolBackend.Repositories.Helpers;
 
 public interface IJobRepository
 {
-    Task<IEnumerable<Job>> GetAllAsync();
-    Task<Job?> GetByNumberAsync(string jobNumber);
+    Task<IEnumerable<Job>> GetAllAsync(Func<IQueryable<Job>, IQueryable<Job>>? includeFunc = null);
+    Task<Job?> GetByNumberAsync(string jobNumber, Func<IQueryable<Job>, IQueryable<Job>>? includeFunc = null);
+    
+    // Example of a tightly related model served by the same repo
+    Task<DistributionList?> GetDistributionListAsync(int id, Func<IQueryable<DistributionList>, IQueryable<DistributionList>>? includeFunc = null);
+
     Task AddAsync(Job job);
-    Task UpdateAsync(Job job);
     Task SaveChangesAsync();
 }
 
-public class JobRepository(AppDbContext dbContext) : IJobRepository
+public class JobRepository : IJobRepository
 {
-    public async Task<IEnumerable<Job>> GetAllAsync()
+    private readonly AppDbContext _dbContext;
+    private readonly QueryHelper _queryHelper;
+
+    public JobRepository(AppDbContext dbContext)
     {
-        return await dbContext.Jobs
-            .Include(j => j.ProjectManagers).ThenInclude(pm => pm.PersonalInfo)
-            .Include(j => j.SiteContacts).ThenInclude(sc => sc.PersonalInfo)
-            .OrderByDescending(j => j.StartDate)
-            .ToListAsync();
+        _dbContext = dbContext;
+        _queryHelper = new QueryHelper(dbContext);
     }
 
-    public async Task<Job?> GetByNumberAsync(string jobNumber)
+    public async Task<IEnumerable<Job>> GetAllAsync(Func<IQueryable<Job>, IQueryable<Job>>? includeFunc = null)
     {
-        return await dbContext.Jobs
-            .Include(j => j.JobNotes)
-            .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+
+        return await _queryHelper.GetAllAsync(includeFunc);
     }
 
-    public async Task AddAsync(Job job) => await dbContext.Jobs.AddAsync(job);
-    
-    public async Task UpdateAsync(Job job) => await Task.CompletedTask; // EF Change Tracking handles this
+    public async Task<Job?> GetByNumberAsync(string jobNumber, Func<IQueryable<Job>, IQueryable<Job>>? includeFunc = null)
+    {
+        return await _queryHelper.GetAsync(
+            j => j.JobNumber == jobNumber, 
+            includeFunc);
+    }
 
-    public async Task SaveChangesAsync() => await dbContext.SaveChangesAsync();
+    public async Task<DistributionList?> GetDistributionListAsync(int id, Func<IQueryable<DistributionList>, IQueryable<DistributionList>>? includeFunc = null)
+    {
+        return await _queryHelper.GetAsync(
+            d => d.Id == id, 
+            includeFunc);
+    }
+
+    public async Task AddAsync(Job job) => await _dbContext.Jobs.AddAsync(job);
+
+    public async Task SaveChangesAsync() => await _dbContext.SaveChangesAsync();
 }

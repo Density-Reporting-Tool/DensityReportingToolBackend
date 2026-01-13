@@ -20,7 +20,13 @@ public class JobService(IJobRepository repository, IMapper mapper) : IJobService
 {
     public async Task<IEnumerable<JobReadDto>> ListJobsAsync()
     {
-        var jobs = await repository.GetAllAsync();
+        var jobs = await repository.GetAllAsync(query => query
+        .Include(j => j.JobNotes)
+        .Include(j => j.SitePlans)
+            .ThenInclude(sp => sp.ShotPlacements)
+        .Include(j => j.ProjectManagers)
+            .ThenInclude(pm => pm.PersonalInfo)
+        );
         return mapper.Map<IEnumerable<JobReadDto>>(jobs);
     }
 
