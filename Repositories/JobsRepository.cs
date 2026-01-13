@@ -9,24 +9,16 @@ public interface IJobRepository
 {
     Task<IEnumerable<Job>> GetAllAsync(Func<IQueryable<Job>, IQueryable<Job>>? includeFunc = null);
     Task<Job?> GetByNumberAsync(string jobNumber, Func<IQueryable<Job>, IQueryable<Job>>? includeFunc = null);
-    
-    // Example of a tightly related model served by the same repo
     Task<DistributionList?> GetDistributionListAsync(int id, Func<IQueryable<DistributionList>, IQueryable<DistributionList>>? includeFunc = null);
 
     Task AddAsync(Job job);
     Task SaveChangesAsync();
 }
 
-public class JobRepository : IJobRepository
+public class JobRepository(AppDbContext dbContext) : IJobRepository
 {
-    private readonly AppDbContext _dbContext;
-    private readonly QueryHelper _queryHelper;
-
-    public JobRepository(AppDbContext dbContext)
-    {
-        _dbContext = dbContext;
-        _queryHelper = new QueryHelper(dbContext);
-    }
+    private readonly AppDbContext _dbContext = dbContext;
+    private readonly QueryHelper _queryHelper = new(dbContext);
 
     public async Task<IEnumerable<Job>> GetAllAsync(Func<IQueryable<Job>, IQueryable<Job>>? includeFunc = null)
     {

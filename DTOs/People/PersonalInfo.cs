@@ -13,6 +13,7 @@ public record PersonalInfoReadDto : PersonalInfoBaseDto
 {
     public int Id { get; init; }
     public GeoPacificEmployeeReadDto? Employee { get; init; }
+    public string? PersonType { get; set; }
 }
 
 public record PersonalInfoCreateDto : PersonalInfoBaseDto;

@@ -8,7 +8,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddFluentValidationAutoValidation();
@@ -16,6 +16,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddScoped<IJobRepository, JobRepository>();
 builder.Services.AddScoped<IJobService, JobService>();
+
+builder.Services.AddScoped<IPeopleRepository, PeopleRepository>();
+builder.Services.AddScoped<IPeopleService, PeopleService>();
 
 // Add services to the container.
 //Registers MVC controllers so your API endpoints can respond to requests.

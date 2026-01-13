@@ -1,4 +1,4 @@
-namespace DensityReportingToolBackend.Mappings.Jobs;
+namespace DensityReportingToolBackend.Mappings;
 
 using AutoMapper;
 using DensityReportingToolBackend.Models;

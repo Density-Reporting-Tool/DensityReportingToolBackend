@@ -1,5 +1,7 @@
 using DensityReportingToolBackend.Data;
+using DensityReportingToolBackend.DTOs.People;
 using DensityReportingToolBackend.Models;
+using DensityReportingToolBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,53 +9,41 @@ namespace DensityReportingToolBackend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class PeopleController : ControllerBase
+    public class PeopleController(IPeopleService peopleService, ILogger<PeopleController> logger) : ControllerBase
     {
-        private readonly ILogger<PeopleController> _logger;
-        private readonly AppDbContext _dbContext;
+        private readonly IPeopleService _peopleService = peopleService;
+        private readonly ILogger<PeopleController> _logger = logger;
 
-        public PeopleController(ILogger<PeopleController> logger, AppDbContext dbContext)
+        // Get all people (Employees and Contractors/Contacts)
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<PersonalInfoReadDto>>> GetAllPeople()
         {
-            _logger = logger;
-            _dbContext = dbContext;
+            var result = await _peopleService.GetAllPeopleAsync();
+            return Ok(result);
+        }
+
+        // Get a specific employee
+        [HttpGet("employees/{id}")]
+        public async Task<ActionResult<GeoPacificEmployeeReadDto>> GetEmployee(int id)
+        {
+            var employee = await _peopleService.GetEmployeeByIdAsync(id);
+            
+            if (employee == null)
+                return NotFound();
+
+            return Ok(employee);
         }
 
         // Create a new GeoPacific employee
         [HttpPost("employees")]
-        public async Task<ActionResult<GeoPacificEmployee>> CreateEmployee([FromBody] CreateEmployeeRequest request)
+        public async Task<ActionResult<GeoPacificEmployeeReadDto>> CreateEmployee([FromBody] CreateEmployeeRequest request)
         {
             try
             {
-                // Create PersonalInfo first
-                var personalInfo = new PersonalInfo
-                {
-                    FirstName = request.FirstName,
-                    LastName = request.LastName,
-                    Email = request.Email,
-                    PhoneNumber = request.PhoneNumber
-                };
-
-                _dbContext.PersonalInfos.Add(personalInfo);
-                await _dbContext.SaveChangesAsync();
-
-                // Create GeoPacificEmployee
-                var employee = new GeoPacificEmployee
-                {
-                    PersonalInfoId = personalInfo.Id,
-                    RoleId = request.RoleId,
-                    Password = request.Password
-                };
-
-                _dbContext.GeoPacificEmployees.Add(employee);
-                await _dbContext.SaveChangesAsync();
-
-                // Return the created employee with all related data
-                var result = await _dbContext.GeoPacificEmployees
-                    .Include(e => e.PersonalInfo)
-                    .Include(e => e.Role)
-                    .FirstOrDefaultAsync(e => e.Id == employee.Id);
-
-                return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, result);
+                var result = await _peopleService.CreateEmployeeAsync(request);
+                
+                // result.Id comes from the GeoPacificEmployee record
+                return CreatedAtAction(nameof(GetEmployee), new { id = result.Id }, result);
             }
             catch (Exception ex)
             {
@@ -62,77 +52,16 @@ namespace DensityReportingToolBackend.Controllers
             }
         }
 
-
-
-        // Get a specific employee
-        [HttpGet("employees/{id}")]
-        public async Task<ActionResult<object>> GetEmployee(int id)
-        {
-            var employee = await _dbContext.GeoPacificEmployees
-                .Include(e => e.PersonalInfo)
-                .Include(e => e.Role)
-                .FirstOrDefaultAsync(e => e.Id == id);
-
-            if (employee == null)
-                return NotFound();
-
-                            return new
-                {
-                    employee.Id,
-                    employee.PersonalInfo.FirstName,
-                    employee.PersonalInfo.LastName,
-                    employee.PersonalInfo.Email,
-                    employee.PersonalInfo.PhoneNumber,
-                    RoleId = employee.RoleId,
-                    RoleTitle = employee.Role?.RoleTitle,
-                    PersonType = "GeoPacific Employee"
-                };
-        }
-
-
-
-        // Get all people with their type
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<object>>> GetAllPeople()
-        {
-            var people = await _dbContext.PersonalInfos
-                .Include(p => p.Employee)
-                .ThenInclude(e => e!.Role)
-                .Select(p => new
-                {
-                    p.Id,
-                    p.FirstName,
-                    p.LastName,
-                    p.Email,
-                    p.PhoneNumber,
-                    p.Company,
-                    PersonType = p.Employee != null ? "GeoPacific Employee" : "Contact",
-                    Role = p.Employee != null && p.Employee.Role != null ? p.Employee.Role.RoleTitle : null
-                })
-                .ToListAsync();
-
-            return Ok(people);
-        }
-
         // Create a contractor (PersonalInfo with Company)
         [HttpPost("contractors")]
-        public async Task<ActionResult<PersonalInfo>> CreateContractor([FromBody] CreateContractorRequest request)
+        public async Task<ActionResult<PersonalInfoReadDto>> CreateContractor([FromBody] CreateContractorRequest request)
         {
             try
             {
-                var personalInfo = new PersonalInfo
-                {
-                    FirstName = request.FirstName,
-                    LastName = request.LastName,
-                    Email = request.Email,
-                    PhoneNumber = request.PhoneNumber,
-                    Company = request.Company
-                };
+                var result = await _peopleService.CreateContractorAsync(request);
+                
 
-                _dbContext.PersonalInfos.Add(personalInfo);
-                await _dbContext.SaveChangesAsync();
-
-                return CreatedAtAction(nameof(GetEmployee), new { id = personalInfo.Id }, personalInfo);
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -140,7 +69,6 @@ namespace DensityReportingToolBackend.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-
     }
 
     // Request models
@@ -165,3 +93,54 @@ namespace DensityReportingToolBackend.Controllers
 
 
 }
+
+
+// Get a specific employee
+// [HttpGet("employees/{id}")]
+// public async Task<ActionResult<object>> GetEmployee(int id)
+// {
+//     var employee = await _dbContext.GeoPacificEmployees
+//         .Include(e => e.PersonalInfo)
+//         .Include(e => e.Role)
+//         .FirstOrDefaultAsync(e => e.Id == id);
+
+//     if (employee == null)
+//         return NotFound();
+
+//                     return new
+//         {
+//             employee.Id,
+//             employee.PersonalInfo.FirstName,
+//             employee.PersonalInfo.LastName,
+//             employee.PersonalInfo.Email,
+//             employee.PersonalInfo.PhoneNumber,
+//             RoleId = employee.RoleId,
+//             RoleTitle = employee.Role?.RoleTitle,
+//             PersonType = "GeoPacific Employee"
+//         };
+// }
+
+
+
+// // Get all people with their type
+// [HttpGet]
+// public async Task<ActionResult<IEnumerable<object>>> GetAllPeople()
+// {
+//     var people = await _dbContext.PersonalInfos
+//         .Include(p => p.Employee)
+//         .ThenInclude(e => e!.Role)
+//         .Select(p => new
+//         {
+//             p.Id,
+//             p.FirstName,
+//             p.LastName,
+//             p.Email,
+//             p.PhoneNumber,
+//             p.Company,
+//             PersonType = p.Employee != null ? "GeoPacific Employee" : "Contact",
+//             Role = p.Employee != null && p.Employee.Role != null ? p.Employee.Role.RoleTitle : null
+//         })
+//         .ToListAsync();
+
+//     return Ok(people);
+// }

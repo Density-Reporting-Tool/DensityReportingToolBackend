@@ -1,10 +1,6 @@
-using DensityReportingToolBackend.Data;
 using DensityReportingToolBackend.DTOs.Jobs;
-using DensityReportingToolBackend.Models;
 using DensityReportingToolBackend.Services;
-using DensityReportingToolBackend.Validators;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace DensityReportingToolBackend.Controllers
 {
