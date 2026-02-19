@@ -14,15 +14,13 @@ namespace DensityReportingToolBackend.Controllers
         private readonly IPeopleService _peopleService = peopleService;
         private readonly ILogger<PeopleController> _logger = logger;
 
-        // Get all people (Employees and Contractors/Contacts)
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PersonalInfoReadDto>>> GetAllPeople()
+        public async Task<ActionResult<IEnumerable<PersonListFlatDto>>> GetAllPeople()
         {
             var result = await _peopleService.GetAllPeopleAsync();
             return Ok(result);
         }
 
-        // Get a specific employee
         [HttpGet("employees/{id}")]
         public async Task<ActionResult<GeoPacificEmployeeReadDto>> GetEmployee(int id)
         {
@@ -34,7 +32,6 @@ namespace DensityReportingToolBackend.Controllers
             return Ok(employee);
         }
 
-        // Create a new GeoPacific employee
         [HttpPost("employees")]
         public async Task<ActionResult<GeoPacificEmployeeReadDto>> CreateEmployee([FromBody] CreateEmployeeRequest request)
         {
@@ -52,7 +49,6 @@ namespace DensityReportingToolBackend.Controllers
             }
         }
 
-        // Create a contractor (PersonalInfo with Company)
         [HttpPost("contractors")]
         public async Task<ActionResult<PersonalInfoReadDto>> CreateContractor([FromBody] CreateContractorRequest request)
         {
