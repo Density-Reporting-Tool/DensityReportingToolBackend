@@ -4,6 +4,7 @@ public abstract record JobNoteBaseDto
 {
     public string Note { get; init; } = string.Empty;
     public DateTime CreatedDate { get; init; } = DateTime.UtcNow;
+    public int? CommentId { get; init; }
 }
 
 public record JobNoteReadDto : JobNoteBaseDto

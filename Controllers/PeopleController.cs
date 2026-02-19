@@ -1,9 +1,6 @@
-using DensityReportingToolBackend.Data;
 using DensityReportingToolBackend.DTOs.People;
-using DensityReportingToolBackend.Models;
 using DensityReportingToolBackend.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace DensityReportingToolBackend.Controllers
 {
@@ -11,83 +8,39 @@ namespace DensityReportingToolBackend.Controllers
     [Route("api/[controller]")]
     public class PeopleController(IPeopleService peopleService, ILogger<PeopleController> logger) : ControllerBase
     {
-        private readonly IPeopleService _peopleService = peopleService;
-        private readonly ILogger<PeopleController> _logger = logger;
-
-        // Get all people (Employees and Contractors/Contacts)
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PersonalInfoReadDto>>> GetAllPeople()
+        public async Task<ActionResult<IEnumerable<PersonListFlatDto>>> GetAllPeople()
         {
-            var result = await _peopleService.GetAllPeopleAsync();
+            var result = await peopleService.GetAllPeopleAsync();
             return Ok(result);
         }
 
-        // Get a specific employee
         [HttpGet("employees/{id}")]
-        public async Task<ActionResult<GeoPacificEmployeeReadDto>> GetEmployee(int id)
+        public async Task<ActionResult<GeoPacificEmployeeFlatDto>> GetEmployee(int id)
         {
-            var employee = await _peopleService.GetEmployeeByIdAsync(id);
-            
+            var employee = await peopleService.GetEmployeeByIdAsync(id);
+
             if (employee == null)
+            {
+                logger.LogWarning("Employee {Id} was requested but not found", id);
                 return NotFound();
+            }
 
             return Ok(employee);
         }
 
-        // Create a new GeoPacific employee
         [HttpPost("employees")]
-        public async Task<ActionResult<GeoPacificEmployeeReadDto>> CreateEmployee([FromBody] CreateEmployeeRequest request)
+        public async Task<ActionResult<GeoPacificEmployeeReadDto>> CreateEmployee([FromBody] GeoPacificEmployeeCreateDto dto)
         {
-            try
-            {
-                var result = await _peopleService.CreateEmployeeAsync(request);
-                
-                // result.Id comes from the GeoPacificEmployee record
-                return CreatedAtAction(nameof(GetEmployee), new { id = result.Id }, result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating employee");
-                return StatusCode(500, "Internal server error");
-            }
+            var result = await peopleService.CreateEmployeeAsync(dto);
+            return CreatedAtAction(nameof(GetEmployee), new { id = result.Id }, result);
         }
 
-        // Create a contractor (PersonalInfo with Company)
         [HttpPost("contractors")]
-        public async Task<ActionResult<PersonalInfoReadDto>> CreateContractor([FromBody] CreateContractorRequest request)
+        public async Task<ActionResult<PersonalInfoReadDto>> CreateContractor([FromBody] PersonalInfoCreateDto dto)
         {
-            try
-            {
-                var result = await _peopleService.CreateContractorAsync(request);
-                
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating contractor");
-                return StatusCode(500, "Internal server error");
-            }
+            var result = await peopleService.CreateContractorAsync(dto);
+            return CreatedAtAction(nameof(GetAllPeople), new { id = result.Id }, result);
         }
-    }
-
-    // Request models
-    public class CreateEmployeeRequest
-    {
-        public required string FirstName { get; set; }
-        public required string LastName { get; set; }
-        public required string Email { get; set; }
-        public required string PhoneNumber { get; set; }
-        public required int RoleId { get; set; }
-        public required string Password { get; set; }
-    }
-
-    public class CreateContractorRequest
-    {
-        public required string FirstName { get; set; }
-        public required string LastName { get; set; }
-        public required string Email { get; set; }
-        public required string PhoneNumber { get; set; }
-        public required string Company { get; set; }
     }
 }

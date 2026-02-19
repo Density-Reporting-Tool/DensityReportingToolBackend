@@ -1,0 +1,647 @@
+{
+	"info": {
+		"name": "DRT - Density Reporting Tool API",
+		"description": "Complete API collection for the Density Reporting Tool Backend.\n\nCovers all endpoints: Health, Jobs, People, Proctors, Reports, and Test/Debug.\n\nBase URL defaults to http://localhost:5013 (dev profile). Update the environment variable if using a different port.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health & Status",
+			"description": "Health checks and status endpoints for verifying the API is running.",
+			"item": [
+				{
+					"name": "Root",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/",
+							"host": ["{{baseUrl}}"],
+							"path": [""]
+						},
+						"description": "Returns API info and list of available endpoints."
+					}
+				},
+				{
+					"name": "Health (root)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						}
+					}
+				},
+				{
+					"name": "Health (api)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "health"]
+						}
+					}
+				},
+				{
+					"name": "Health (test)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/test/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "test", "health"]
+						}
+					}
+				},
+				{
+					"name": "Home",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/home",
+							"host": ["{{baseUrl}}"],
+							"path": ["home"]
+						}
+					}
+				},
+				{
+					"name": "Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["status"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Jobs",
+			"description": "Job management endpoints. Jobs represent construction/geotechnical projects.",
+			"item": [
+				{
+					"name": "Get All Jobs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/jobs",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "jobs"]
+						},
+						"description": "Get all jobs for the dashboard/schedule view."
+					}
+				},
+				{
+					"name": "Get Job by Job Number",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/jobs/{{jobNumber}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "jobs", "{{jobNumber}}"]
+						},
+						"description": "Get a specific job by its job number (e.g. '25482' or '15827-A')."
+					}
+				},
+				{
+					"name": "Create Job",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"jobNumber\": \"25500\",\n  \"clientName\": \"ABC Construction\",\n  \"projectName\": \"Downtown Parking Garage\",\n  \"siteAddress\": \"123 Main St, Portland, OR 97201\",\n  \"startDate\": \"2026-03-01T00:00:00Z\",\n  \"endDate\": \"2026-09-30T00:00:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/jobs",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "jobs"]
+						},
+						"description": "Create a new job. jobNumber, clientName, projectName, and siteAddress are the key fields."
+					}
+				}
+			]
+		},
+		{
+			"name": "People",
+			"description": "Manage employees and contractors.",
+			"item": [
+				{
+					"name": "Get All People",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/people",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "people"]
+						},
+						"description": "Returns all people (employees + contractors) with their type."
+					}
+				},
+				{
+					"name": "Get Employee by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/people/employees/{{employeeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "people", "employees", "{{employeeId}}"]
+						},
+						"description": "Get a specific GeoPacific employee by their ID."
+					}
+				},
+				{
+					"name": "Create Employee",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"email\": \"jane.doe@geopacific.com\",\n  \"phoneNumber\": \"+1-555-0202\",\n  \"roleId\": 1,\n  \"password\": \"TempPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/people/employees",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "people", "employees"]
+						},
+						"description": "Create a new GeoPacific employee. Requires firstName, lastName, email, phoneNumber, roleId, and password."
+					}
+				},
+				{
+					"name": "Create Contractor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Bob\",\n  \"lastName\": \"Builder\",\n  \"email\": \"bob@construction-co.com\",\n  \"phoneNumber\": \"+1-555-0303\",\n  \"company\": \"Builder Construction Inc.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/people/contractors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "people", "contractors"]
+						},
+						"description": "Create a new contractor. Uses PersonalInfoCreateDto with the company field."
+					}
+				}
+			]
+		},
+		{
+			"name": "Proctors - General",
+			"description": "General proctor CRUD endpoints.",
+			"item": [
+				{
+					"name": "Get All Proctors",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors"]
+						}
+					}
+				},
+				{
+					"name": "Get Proctor by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/{{proctorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "{{proctorId}}"]
+						}
+					}
+				},
+				{
+					"name": "Create Proctor (Simple)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"jobNumber\": \"{{jobNumber}}\",\n  \"proctorId\": \"P-002\",\n  \"proctorTestNumber\": \"PT-2024-002\",\n  \"materialType\": \"Clay Soil\",\n  \"labLocation\": \"Main Lab\",\n  \"proctorType\": \"MPDD\",\n  \"maxDensity\": 2056.0,\n  \"correctedDensity\": 2018.0,\n  \"optimumMoisture\": 14.2,\n  \"specificGravity\": 2.68,\n  \"oversizePercentage\": 3.5,\n  \"dateSampled\": \"2024-01-20T00:00:00Z\",\n  \"dateTested\": \"2024-01-25T00:00:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors"]
+						}
+					}
+				},
+				{
+					"name": "Update Proctor",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": {{proctorId}},\n  \"proctorId\": \"P-002\",\n  \"materialType\": \"Updated Clay Soil\",\n  \"labLocation\": \"Main Lab\",\n  \"proctorType\": \"MPDD\",\n  \"maxDensity\": 2064.0,\n  \"correctedDensity\": 2032.0,\n  \"optimumMoisture\": 14.5,\n  \"specificGravity\": 2.70,\n  \"oversizePercentage\": 3.0,\n  \"dateSampled\": \"2024-01-20T00:00:00Z\",\n  \"dateTested\": \"2024-01-26T00:00:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/{{proctorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "{{proctorId}}"]
+						}
+					}
+				},
+				{
+					"name": "Search Proctors by Job Number",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/search?jobNumber={{jobNumber}}&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "search"],
+							"query": [
+								{
+									"key": "jobNumber",
+									"value": "{{jobNumber}}"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Proctors for Job (by job number)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/job/{{jobNumber}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "job", "{{jobNumber}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Proctors for Job (by job ID)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/job-id/{{jobId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "job-id", "{{jobId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Proctors - Lab Admin",
+			"description": "Lab Admin proctor endpoints with legacy format support and pagination.",
+			"item": [
+				{
+					"name": "Create Proctor (Lab Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"jobNumber\": \"{{jobNumber}}\",\n  \"proctorTestNumber\": \"PT-2024-003\",\n  \"materialType\": \"Sandy Soil\",\n  \"dateSampled\": \"2024-02-01\",\n  \"proctorType\": \"SPDD\",\n  \"maxDryDensity\": \"122.5\",\n  \"correctedDensity\": \"120.0\",\n  \"labLocation\": \"Main Lab\",\n  \"proctorId\": \"P-003\",\n  \"dateTested\": \"2024-02-05\",\n  \"oversizePercentage\": 2.5,\n  \"optimumMoisture\": 10.5,\n  \"specificGravity\": \"2.62\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/lab-admin",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "lab-admin"]
+						}
+					}
+				},
+				{
+					"name": "Update Proctor (Lab Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"proctorTestNumber\": \"PT-2024-003-UPDATED\",\n  \"materialType\": \"Updated Sandy Soil\",\n  \"dateSampled\": \"2024-02-01\",\n  \"proctorType\": \"SPDD\",\n  \"maxDryDensity\": \"123.0\",\n  \"correctedDensity\": \"121.0\",\n  \"labLocation\": \"Main Lab\",\n  \"dateTested\": \"2024-02-06\",\n  \"oversizePercentage\": 2.0,\n  \"optimumMoisture\": 11.0,\n  \"specificGravity\": \"2.63\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/lab-admin/{{proctorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "lab-admin", "{{proctorId}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Proctors (Lab Admin - Paginated)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/lab-admin?page=1&limit=50&jobNumber={{jobNumber}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "lab-admin"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								},
+								{
+									"key": "jobNumber",
+									"value": "{{jobNumber}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Proctors - Field Tech",
+			"description": "Field technician endpoints for density testing in the field.",
+			"item": [
+				{
+					"name": "Get Density Requirements",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/proctors/field-tech/{{proctorId}}/density-requirements",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "proctors", "field-tech", "{{proctorId}}", "density-requirements"]
+						},
+						"description": "Get density requirements for field testing. Returns target densities at 90%, 95%, and 98% compaction."
+					}
+				}
+			]
+		},
+		{
+			"name": "Reports",
+			"description": "Report management including density tests.",
+			"item": [
+				{
+					"name": "Get All Reports",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports"]
+						}
+					}
+				},
+				{
+					"name": "Get Report by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/{{reportId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports", "{{reportId}}"]
+						}
+					}
+				},
+				{
+					"name": "Create Report",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"jobId\": {{jobId}},\n  \"employeeId\": {{employeeId}},\n  \"reviewerId\": null,\n  \"startDate\": \"2026-02-19T08:00:00Z\",\n  \"submitDate\": null,\n  \"distributeDate\": null,\n  \"distributionListId\": null,\n  \"memo\": {\n    \"purpose\": \"Field density testing for pad foundation\",\n    \"commentsAndObservations\": \"Soil conditions consistent with proctor results\",\n    \"conclusion\": \"All tests meet 95% compaction specification\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reports",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports"]
+						},
+						"description": "Create a new report. jobId and employeeId are required. Memo is optional."
+					}
+				},
+				{
+					"name": "Search Reports by Job Number",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/search?jobNumber={{jobNumber}}&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports", "search"],
+							"query": [
+								{
+									"key": "jobNumber",
+									"value": "{{jobNumber}}"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Reports for Job",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/job/{{jobNumber}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports", "job", "{{jobNumber}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Proctors Available for Job (via Reports)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/proctors/job/{{jobId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports", "proctors", "job", "{{jobId}}"]
+						},
+						"description": "Get proctors available for a specific job. Used when creating density tests."
+					}
+				},
+				{
+					"name": "Create Density Test for Report",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"proctorId\": {{proctorId}},\n  \"testArea\": \"Pad A - Northwest Corner\",\n  \"location\": \"Grid B-4\",\n  \"elevationReference\": \"AboveSubgrade\",\n  \"elevationValue\": 1.5,\n  \"elevationUnit\": \"Meters\",\n  \"correctedOversizePercentage\": 3.2,\n  \"probeDepth\": 15.0,\n  \"probeDepthUnit\": \"Cm\",\n  \"compactionSpecification\": 95.0,\n  \"compactionSpecificationUnit\": \"SPDD\",\n  \"densityValue\": 2045.0,\n  \"moistureValue\": 12.8\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/{{reportId}}/density-test",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports", "{{reportId}}", "density-test"]
+						},
+						"description": "Add a density test result to an existing report. proctorId is required."
+					}
+				}
+			]
+		},
+		{
+			"name": "Test / Debug",
+			"description": "Development and debugging endpoints. These bypass the service layer and query the database directly.",
+			"item": [
+				{
+					"name": "Get All Employees (Test)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/test/employees",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "test", "employees"]
+						}
+					}
+				},
+				{
+					"name": "Get All Contractors (Test)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/test/contractors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "test", "contractors"]
+						}
+					}
+				},
+				{
+					"name": "Get All People (Test)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/test/people",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "test", "people"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-check that the response was successful",
+					"pm.test(\"Status code is 2xx\", function () {",
+					"    pm.expect(pm.response.code).to.be.within(200, 299);",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5013",
+			"type": "string"
+		},
+		{
+			"key": "jobNumber",
+			"value": "12345",
+			"type": "string"
+		},
+		{
+			"key": "jobId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "proctorId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "reportId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "employeeId",
+			"value": "1",
+			"type": "string"
+		}
+	]
+}
