@@ -1,127 +1,58 @@
-using DensityReportingToolBackend.Data;
-using DensityReportingToolBackend.Models;
-
 using Microsoft.EntityFrameworkCore;
+using AutoMapper;
+
+using DensityReportingToolBackend.Models;
+using DensityReportingToolBackend.DTOs.Jobs;
+using DensityReportingToolBackend.Data;
 
 namespace DensityReportingToolBackend.Services;
 
-public class JobService(AppDbContext dbContext)
+public interface IJobService
 {
-    private readonly AppDbContext dbContext = dbContext;
+    Task<IEnumerable<JobReadDto>> ListJobsAsync();
+    Task<JobReadDto> GetJobByNumberAsync(string jobNumber);
+    Task<JobReadDto> CreateJobAsync(JobCreateDto dto);
+    Task<JobReadDto> UpdateJobAsync(int id, JobUpdateDto dto);
+}
 
-    public async Task<IEnumerable<Job>> ListJobs()
+public class JobService(AppDbContext dbContext, IMapper mapper) : IJobService
+{
+    public async Task<IEnumerable<JobReadDto>> ListJobsAsync()
     {
-        return await dbContext.Jobs
-                    .Include(j => j.ProjectManagers)
-                        .ThenInclude(jpm => jpm.PersonalInfo)
-                    .Include(j => j.SiteContacts)
-                        .ThenInclude(jsc => jsc.PersonalInfo)
-                    .OrderByDescending(j => j.StartDate)
-                    .ThenBy(j => j.JobNumber)
-                    .ToListAsync();
-    }
-
-    public async Task<Job?> GetJobByNumber(string jobNumber)
-    {
-        return await dbContext.Jobs
-                    .Include(j => j.ProjectManagers)
-                        .ThenInclude(jpm => jpm.PersonalInfo)
-                    .Include(j => j.SiteContacts)
-                        .ThenInclude(jsc => jsc.PersonalInfo)
-                    .Include(j => j.DistributionLists)
-                        .ThenInclude(dl => dl.DistributionMembers)
-                            .ThenInclude(dm => dm.PersonalInfo)
-                    .Include(j => j.Reports)
-                    .Include(j => j.JobNotes)
-                    .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
-    }
-
-    public async Task<IEnumerable<Job>> SearchJobsByJobNumber(string jobNumber, int limit = 10)
-    {
-        return await dbContext.Jobs
-            .Where(j => j.JobNumber.Contains(jobNumber))
-            .OrderBy(j => j.JobNumber)
-            .Take(limit)
+        var jobs = await dbContext.Jobs
+            .Include(j => j.JobNotes)
+            .Include(j => j.SitePlans)
+                .ThenInclude(sp => sp.ShotPlacements)
+            .Include(j => j.ProjectManagers)
+                .ThenInclude(pm => pm.PersonalInfo)
+            .AsNoTracking()
             .ToListAsync();
+
+        return mapper.Map<IEnumerable<JobReadDto>>(jobs);
     }
 
-public async Task<Job> CreateJob(JobCreateDto dto)
-{
-    var job = new Job
+    public async Task<JobReadDto> GetJobByNumberAsync(string jobNumber)
     {
-        JobNumber = dto.JobNumber,
-        ClientName = dto.ClientName,
-        ProjectName = dto.ProjectName,
-        SiteAddress = dto.SiteAddress,
-        StartDate = dto.StartDate,
-        EndDate = dto.EndDate
-    };
-    if (dto.JobNotes != null)
-    {
-        foreach (var noteDto in dto.JobNotes)
-        {
-            if (noteDto != null)
-            {
-                job.JobNotes.Add(new JobNote
-                {
-                    JobId = job.Id,
-                    Note = noteDto.Note,
-                    CreatedDate = noteDto.CreatedDate != default ? noteDto.CreatedDate : DateTime.UtcNow
-                });
-            }
-        }
+        var job = await dbContext.Jobs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
+        return mapper.Map<JobReadDto>(job);
     }
 
-    dbContext.Jobs.Add(job);
-    await dbContext.SaveChangesAsync();
-
-    return job;
-}
-
-public async Task<Job> UpdateJob(int jobId, JobUpdateDto dto)
-{
-    var job = await dbContext.Jobs
-        .Include(j => j.JobNotes)
-        .FirstOrDefaultAsync(j => j.Id == jobId);
-
-    if (job == null)
-        throw new KeyNotFoundException($"Job with ID {jobId} not found.");
-
-    if (!string.IsNullOrWhiteSpace(dto.JobNumber))
-        job.JobNumber = dto.JobNumber;
-
-    if (!string.IsNullOrWhiteSpace(dto.ClientName))
-        job.ClientName = dto.ClientName;
-
-    if (!string.IsNullOrWhiteSpace(dto.ProjectName))
-        job.ProjectName = dto.ProjectName;
-
-    if (!string.IsNullOrWhiteSpace(dto.SiteAddress))
-        job.SiteAddress = dto.SiteAddress;
-
-    if (dto.StartDate.HasValue)
-        job.StartDate = dto.StartDate;
-
-    if (dto.EndDate.HasValue)
-        job.EndDate = dto.EndDate;
-
-    if (dto.JobNotes != null)
+    public async Task<JobReadDto> CreateJobAsync(JobCreateDto dto)
     {
-        foreach (var noteDto in dto.JobNotes)
-        {
-            if (noteDto != null && !string.IsNullOrWhiteSpace(noteDto.Note))
-            {
-                job.JobNotes.Add(new JobNote
-                {
-                    JobId = job.Id,
-                    Note = noteDto.Note,
-                    CreatedDate = noteDto.CreatedDate != default ? noteDto.CreatedDate : DateTime.UtcNow
-                });
-            }
-        }
+        var job = mapper.Map<Job>(dto);
+        await dbContext.AddAsync(job);
+        await dbContext.SaveChangesAsync();
+        return mapper.Map<JobReadDto>(job);
     }
 
-    await dbContext.SaveChangesAsync();
-    return job;
-}
+    public async Task<JobReadDto> UpdateJobAsync(int id, JobUpdateDto dto)
+    {
+        var existingJob = await dbContext.Jobs.FirstOrDefaultAsync(j => j.JobNumber == dto.JobNumber) ?? throw new KeyNotFoundException();
+        mapper.Map(dto, existingJob);
+
+        await dbContext.SaveChangesAsync();
+        return mapper.Map<JobReadDto>(existingJob);
+    }
 }

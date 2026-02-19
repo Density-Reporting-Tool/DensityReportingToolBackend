@@ -41,10 +41,10 @@ public static class ProctorExtensions
     /// <summary>
     /// Converts Proctor entity to ProctorReadDto
     /// </summary>
-    public static ProctorReadDto ToDto(this Proctor proctor, HashSet<(Type, int)>? visited = null)
+    public static ProctorReadDTOLD ToDto(this Proctor proctor, HashSet<(Type, int)>? visited = null)
     {
         visited ??= new HashSet<(Type, int)>();
-        return new ProctorReadDto(proctor, visited);
+        return new ProctorReadDTOLD(proctor, visited);
     }
 }
 
@@ -86,7 +86,7 @@ public class ProctorUpdateDto : ProctorBaseDto
 /// <summary>
 /// DTO for reading proctor data with related entities
 /// </summary>
-public class ProctorReadDto : ProctorBaseDto
+public class ProctorReadDTOLD : ProctorBaseDto // TODO: Remove this in favor of unified server framework
 {
     public int Id { get; set; }
     public int LabTestId { get; set; }
@@ -97,7 +97,7 @@ public class ProctorReadDto : ProctorBaseDto
     public string ClientName { get; set; } = string.Empty;
     public string ProjectName { get; set; } = string.Empty;
     
-    public ProctorReadDto(Proctor proctor, HashSet<(Type, int)> visited)
+    public ProctorReadDTOLD(Proctor proctor, HashSet<(Type, int)> visited)
     {
         Id = proctor.Id;
         ProctorId = proctor.ProctorID;
