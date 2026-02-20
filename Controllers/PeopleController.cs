@@ -8,9 +8,6 @@ namespace DensityReportingToolBackend.Controllers
     [Route("api/[controller]")]
     public class PeopleController(IPeopleService peopleService, ILogger<PeopleController> logger) : ControllerBase
     {
-        private readonly IPeopleService _peopleService = peopleService;
-        private readonly ILogger<PeopleController> _logger = logger;
-
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PersonListFlatDto>>> GetAllPeople()
         {
