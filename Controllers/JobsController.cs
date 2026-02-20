@@ -14,7 +14,7 @@ namespace DensityReportingToolBackend.Controllers
         /// </summary>
         /// <returns>List of all jobs with basic information</returns>
         [HttpGet]
-        public async Task<ActionResult<object>> GetAllJobs()
+        public async Task<ActionResult<IEnumerable<JobReadDto>>> GetAllJobs()
         {
             logger.LogInformation("Retrieving all jobs for dashboard");
             var result = await jobService.ListJobsAsync();
