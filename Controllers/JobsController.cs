@@ -1,4 +1,5 @@
 using DensityReportingToolBackend.DTOs.Jobs;
+using DensityReportingToolBackend.Infrastructure;
 using DensityReportingToolBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,7 +7,7 @@ namespace DensityReportingToolBackend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class JobsController(IJobService jobService, ILogger<JobsController> logger) : ControllerBase
+    public class JobsController(IJobService jobService, ILogger<JobsController> logger) : BaseApiController
     {
 
         /// <summary>
@@ -14,18 +15,19 @@ namespace DensityReportingToolBackend.Controllers
         /// </summary>
         /// <returns>List of all jobs with basic information</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<JobReadDto>>> GetAllJobs()
+        public async Task<ActionResult<ApiResponse<IEnumerable<JobReadDto>>>> GetAllJobs()
         {
             logger.LogInformation("Retrieving all jobs for dashboard");
             var result = await jobService.ListJobsAsync();
-            return Ok(result);
+            return Success(result, "Jobs retrieved successfully");
         }
 
         [HttpPost]
-        public async Task<ActionResult<JobReadDto>> CreateJob(JobCreateDto dto)
+        public async Task<ActionResult<ApiResponse<JobReadDto>>> CreateJob(JobCreateDto dto)
         {
             var result = await jobService.CreateJobAsync(dto);
-            return CreatedAtAction(nameof(GetAllJobs), new { id = result.Id }, result);
+            var response = ApiResponse<JobReadDto>.SuccessResponse(result, "Job created successfully");
+            return Created(nameof(GetJob), new { jobNumber = result.Id }, result);
         }
 
         /// <summary>
@@ -34,7 +36,7 @@ namespace DensityReportingToolBackend.Controllers
         /// <param name="jobNumber">The job number to search for (can be numeric like "25482" or alphanumeric like "15827-A")</param>
         /// <returns>Job information including client, project details, and key relationships</returns>
         [HttpGet("{jobNumber}")]
-        public async Task<ActionResult<JobReadDto>> GetJob(string jobNumber)
+        public async Task<ActionResult<ApiResponse<JobReadDto>>> GetJob(string jobNumber)
         {
             // 1. The service now returns the DTO directly.
             // Logic for "null means 404" is handled either here or in a Global Filter.
@@ -43,10 +45,10 @@ namespace DensityReportingToolBackend.Controllers
             if (jobDto == null)
             {
                 logger.LogWarning("Job {JobNumber} was requested but not found", jobNumber);
-                return NotFound(); // Middleware or a standard response handles the message
+                return Failure<JobReadDto>($"Job {jobNumber} not found", 404);
             }
 
-            return Ok(jobDto);
+            return Success(jobDto);
         }
 
         // [HttpPut("{jobId}")]

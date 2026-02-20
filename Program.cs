@@ -1,15 +1,20 @@
 //Creates a WebApplicationBuilder which sets up configuration, logging, dependency injection, etc.
 //args comes from the command line and can be used for custom configuration.
 using DensityReportingToolBackend.Data;
+using DensityReportingToolBackend.Infrastructure;
 using DensityReportingToolBackend.Models;
 using DensityReportingToolBackend.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddAutoMapper(typeof(Program));
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
+builder.Services.AddAutoMapper(typeof(Program).Assembly);
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
@@ -18,7 +23,18 @@ builder.Services.AddScoped<IPeopleService, PeopleService>();
 
 // Add services to the container.
 //Registers MVC controllers so your API endpoints can respond to requests.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage);
+
+            return new BadRequestObjectResult(ApiResponse<object>.ValidationError(errors));
+        };
+    });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 // Enables API metadata for minimal APIs, used by Swagger.
 builder.Services.AddEndpointsApiExplorer();
@@ -54,12 +70,11 @@ builder.Services.AddCors(options =>
 // get our connection string in appsettings.development.json
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Register services
-// Note: Services (JobService, ProctorService, ReportService) are instantiated directly in their controllers, not via DI
-
+    
 // Returns a WebApplication instance, which represents your running server
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
