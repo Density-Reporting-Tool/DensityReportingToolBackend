@@ -40,6 +40,13 @@ public class JobService(AppDbContext dbContext, IMapper mapper) : IJobService
     public async Task<JobReadDto> GetJobByNumberAsync(string jobNumber)
     {
         var job = await dbContext.Jobs
+            .Include(j => j.JobNotes)
+            .Include(j => j.SitePlans)
+            .Include(j => j.Reports)
+            .Include(j => j.ProjectManagers)
+                .ThenInclude(pm => pm.PersonalInfo)
+            .Include(j => j.SiteContacts)
+                .ThenInclude(sc => sc.PersonalInfo)
             .AsNoTracking()
             .FirstOrDefaultAsync(j => j.JobNumber == jobNumber);
         return mapper.Map<JobReadDto>(job);
