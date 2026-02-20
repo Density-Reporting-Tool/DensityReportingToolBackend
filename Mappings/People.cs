@@ -19,5 +19,9 @@ public class PeopleMappingProfile : Profile
         CreateMap<PersonalInfo, PersonalInfoReadDto>();
         CreateMap<GeoPacificEmployee, GeoPacificEmployeeReadDto>();
         CreateMap<Role, RoleReadDto>();
+
+        CreateMap<PersonalInfoCreateDto, PersonalInfo>();
+        CreateMap<GeoPacificEmployeeCreateDto, PersonalInfo>()
+            .ForMember(d => d.Company, opt => opt.Ignore());
     }
 }

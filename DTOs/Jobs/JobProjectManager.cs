@@ -7,7 +7,9 @@ public abstract record JobProjectManagerBaseDto
     public DateTime StartDate { get; init; }
     public DateTime? EndDate { get; init; }
     public string? Notes { get; init; }
+    public bool IsPrimary { get; init; } = false;
     public bool IsActive { get; init; } = true;
+    public int? GeoPacificEmployeeId { get; init; }
 }
 
 public record JobProjectManagerReadDto : JobProjectManagerBaseDto

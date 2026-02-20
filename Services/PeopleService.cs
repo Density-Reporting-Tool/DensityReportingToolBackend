@@ -1,5 +1,4 @@
 using AutoMapper;
-using DensityReportingToolBackend.Controllers;
 using DensityReportingToolBackend.Data;
 using DensityReportingToolBackend.DTOs.People;
 using DensityReportingToolBackend.Models;
@@ -8,27 +7,27 @@ using Microsoft.EntityFrameworkCore;
 namespace DensityReportingToolBackend.Services;
 public interface IPeopleService
 {
-    Task<GeoPacificEmployeeReadDto> CreateEmployeeAsync(CreateEmployeeRequest request);
-    Task<PersonalInfoReadDto> CreateContractorAsync(CreateContractorRequest request);
+    Task<GeoPacificEmployeeReadDto> CreateEmployeeAsync(GeoPacificEmployeeCreateDto dto);
+    Task<PersonalInfoReadDto> CreateContractorAsync(PersonalInfoCreateDto dto);
     Task<GeoPacificEmployeeFlatDto?> GetEmployeeByIdAsync(int id);
     Task<IEnumerable<PersonListFlatDto>> GetAllPeopleAsync();
 }
 
 public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleService
 {
-    public async Task<GeoPacificEmployeeReadDto> CreateEmployeeAsync(CreateEmployeeRequest request)
+    public async Task<GeoPacificEmployeeReadDto> CreateEmployeeAsync(GeoPacificEmployeeCreateDto dto)
     {
         var employee = new GeoPacificEmployee
         {
             PersonalInfo = new PersonalInfo
             {
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                Email = request.Email,
-                PhoneNumber = request.PhoneNumber
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                Email = dto.Email,
+                PhoneNumber = dto.PhoneNumber
             },
-            RoleId = request.RoleId,
-            Password = request.Password
+            RoleId = dto.RoleId,
+            Password = dto.Password
         };
 
         await dbContext.GeoPacificEmployees.AddAsync(employee);
@@ -37,15 +36,15 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
         return mapper.Map<GeoPacificEmployeeReadDto>(employee);
     }
 
-    public async Task<PersonalInfoReadDto> CreateContractorAsync(CreateContractorRequest request)
+    public async Task<PersonalInfoReadDto> CreateContractorAsync(PersonalInfoCreateDto dto)
     {
         var personalInfo = new PersonalInfo
         {
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Email = request.Email,
-            PhoneNumber = request.PhoneNumber,
-            Company = request.Company
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            Email = dto.Email,
+            PhoneNumber = dto.PhoneNumber,
+            Company = dto.Company
         };
 
         await dbContext.PersonalInfos.AddAsync(personalInfo);
