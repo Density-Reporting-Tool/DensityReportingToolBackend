@@ -1,5 +1,6 @@
 using DensityReportingToolBackend.DTOs.Jobs;
 using DensityReportingToolBackend.Infrastructure;
+using DensityReportingToolBackend.Infrastructure.Common;
 using DensityReportingToolBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,10 +16,14 @@ namespace DensityReportingToolBackend.Controllers
         /// </summary>
         /// <returns>List of all jobs with basic information</returns>
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<JobReadDto>>>> GetAllJobs()
+        public async Task<ActionResult<ApiResponse<PagedResult<JobReadDto>>>> GetAllJobs(
+            [FromQuery] int pageNumber = 1, 
+            [FromQuery] int pageSize = 10)
         {
-            logger.LogInformation("Retrieving all jobs for dashboard");
-            var result = await jobService.ListJobsAsync();
+            logger.LogInformation("Retrieving paged jobs for dashboard: Page {PageNumber}, Size {PageSize}", pageNumber, pageSize);
+
+            var result = await jobService.ListJobsAsync(pageNumber, pageSize);
+
             return Success(result, "Jobs retrieved successfully");
         }
 

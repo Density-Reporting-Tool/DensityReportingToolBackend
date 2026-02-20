@@ -4,12 +4,14 @@ using AutoMapper;
 using DensityReportingToolBackend.Models;
 using DensityReportingToolBackend.DTOs.Jobs;
 using DensityReportingToolBackend.Data;
+using DensityReportingToolBackend.Infrastructure.Common;
+using DensityReportingToolBackend.Infrastructure.Extensions;
 
 namespace DensityReportingToolBackend.Services;
 
 public interface IJobService
 {
-    Task<IEnumerable<JobReadDto>> ListJobsAsync();
+    Task<PagedResult<JobReadDto>> ListJobsAsync(int pageNumber, int pageSize);
     Task<IEnumerable<JobReadDto>> SearchJobsByJobNumberAsync(string jobNumber, int limit);
     Task<JobReadDto> GetJobByNumberAsync(string jobNumber);
     Task<JobReadDto> CreateJobAsync(JobCreateDto dto);
@@ -18,18 +20,21 @@ public interface IJobService
 
 public class JobService(AppDbContext dbContext, IMapper mapper) : IJobService
 {
-    public async Task<IEnumerable<JobReadDto>> ListJobsAsync()
+    public async Task<PagedResult<JobReadDto>> ListJobsAsync(int pageNumber, int pageSize)
     {
-        var jobs = await dbContext.Jobs
+        var query = dbContext.Jobs
             .Include(j => j.JobNotes)
             .Include(j => j.SitePlans)
                 .ThenInclude(sp => sp.ShotPlacements)
             .Include(j => j.ProjectManagers)
                 .ThenInclude(pm => pm.PersonalInfo)
             .AsNoTracking()
-            .ToListAsync();
+            .OrderByDescending(j => j.Id);
 
-        return mapper.Map<IEnumerable<JobReadDto>>(jobs);
+        var pagedEntities = await query.ToPagedResultAsync(pageNumber, pageSize);
+
+        var dtos = mapper.Map<IEnumerable<JobReadDto>>(pagedEntities.Items);
+        return new PagedResult<JobReadDto>(dtos, pagedEntities.Metadata);
     }
 
     public async Task<JobReadDto> GetJobByNumberAsync(string jobNumber)
