@@ -1,59 +1,30 @@
-using Microsoft.AspNetCore.Mvc;
+using DensityReportingToolBackend.DTOs.Labs;
+using DensityReportingToolBackend.Infrastructure;
+using DensityReportingToolBackend.Infrastructure.Common;
 using DensityReportingToolBackend.Services;
-using DensityReportingToolBackend.Models;
-using DensityReportingToolBackend.Models.DTOs;
-using DensityReportingToolBackend.Data;
-using DensityReportingToolBackend.Validators;
+using Microsoft.AspNetCore.Mvc;
 
 namespace DensityReportingToolBackend.Controllers
 {
     [ApiController]
-    [Route("api/proctors")]
-    public class ProctorController : ControllerBase
+    [Route("api/[controller]")]
+    public class ProctorController(IJobService proctorService, ILogger<ProctorController> logger) : BaseApiController
     {
-        private readonly ILogger<ProctorController> _logger;
-        private readonly AppDbContext _dbContext;
-        private readonly ProctorService _proctorService;
-
-        public ProctorController(ILogger<ProctorController> logger, AppDbContext dbContext)
-        {
-            _logger = logger;
-            _dbContext = dbContext;
-            _proctorService = new ProctorService(dbContext);
-        }
 
         /// <summary>
         /// Get all proctors for dashboard/schedule view
         /// </summary>
         /// <returns>List of all proctors with basic information</returns>
         [HttpGet]
-        public async Task<ActionResult<object>> GetAllProctors()
+        public async Task<ActionResult<ApiResponse<PagedResult<ProctorReadDto>>>> GetAllProctors(
+            [FromQuery] int pageNumber = 1, 
+            [FromQuery] int pageSize = 10)
         {
-            try
-            {
-                _logger.LogInformation("Retrieving all proctors for dashboard");
-                var proctors = await _proctorService.ListProctors();
-                var result = proctors.Select(proctor => new
-                {
-                    Id = proctor.Id,
-                    ProctorId = proctor.ProctorID,
-                    JobNumber = proctor.LabTest.Job.JobNumber,
-                    MaterialType = proctor.LabTest.MaterialType,
-                    ProctorType = proctor.ProctorType.Type,
-                    MaxDensity = proctor.MaxDensity,
-                    DateTested = proctor.DateTested
-                }).ToList();
-                _logger.LogInformation("Successfully retrieved {ProctorCount} proctors", result.Count);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving all proctors");
-                return StatusCode(500, new
-                {
-                    message = "An error occurred while retrieving proctors"
-                });
-            }
+                logger.LogInformation("Retrieving paged proctors for dashboard: Page {PageNumber}, Size {PageSize}", pageNumber, pageSize);
+     
+                var result = await proctorService.ListJobsAsync(pageNumber, pageSize);
+
+                return Success(result, "Proctors retrieved successfully");
         }
 
         /// <summary>
