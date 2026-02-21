@@ -1,9 +1,27 @@
-using DensityReportingToolBackend.Data;
-using DensityReportingToolBackend.Models;
-using DensityReportingToolBackend.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
+using AutoMapper;
 
-namespace DensityReportingToolBackend.Services
+using DensityReportingToolBackend.Models;
+using DensityReportingToolBackend.DTOs.Labs;
+using DensityReportingToolBackend.Data;
+using DensityReportingToolBackend.Infrastructure.Common;
+using DensityReportingToolBackend.Infrastructure.Extensions;
+
+namespace DensityReportingToolBackend.Services;
+
+public interface IProctorService
+{
+    Task<PagedResult<ProctorReadDto>> ListProctorsAsync(int pageNumber, int pageSize);
+    Task<IEnumerable<ProctorReadDto>> SearchProctorsByJobNumberAsync(string proctorNumber, int limit);
+    Task<ProctorReadDto> GetProctorByNumberAsync(string proctorbNumber);
+    Task<ProctorReadDto> CreateProctorAsync(ProctorCreateDto dto);
+    Task<ProctorReadDto> UpdateProctorAsync(int id, ProctorUpdateDto dto);
+}
+
+
+
+
+
 {
     /// <summary>
     /// Service for managing Proctor operations including CRUD operations, 

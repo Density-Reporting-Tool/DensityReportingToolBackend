@@ -8,7 +8,7 @@ namespace DensityReportingToolBackend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ProctorController(IJobService proctorService, ILogger<ProctorController> logger) : BaseApiController
+    public class ProctorController(IProctorService proctorService, ILogger<ProctorController> logger) : BaseApiController
     {
 
         /// <summary>
@@ -20,11 +20,11 @@ namespace DensityReportingToolBackend.Controllers
             [FromQuery] int pageNumber = 1, 
             [FromQuery] int pageSize = 10)
         {
-                logger.LogInformation("Retrieving paged proctors for dashboard: Page {PageNumber}, Size {PageSize}", pageNumber, pageSize);
-     
-                var result = await proctorService.ListJobsAsync(pageNumber, pageSize);
+            logger.LogInformation("Retrieving paged proctors for dashboard: Page {PageNumber}, Size {PageSize}", pageNumber, pageSize);
+    
+            var result = await proctorService.ListProctorsAsync(pageNumber, pageSize);
 
-                return Success(result, "Proctors retrieved successfully");
+            return Success(result, "Proctors retrieved successfully");
         }
 
         /// <summary>
