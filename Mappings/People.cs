@@ -16,6 +16,9 @@ public class PeopleMappingProfile : Profile
             .ForMember(d => d.RoleTitle, o => o.MapFrom(s => s.Role.RoleTitle));
 
         CreateMap<PersonalInfo, PersonListFlatDto>();
+        CreateMap<PersonalInfo, PersonalInfoReadDto>();
+        CreateMap<GeoPacificEmployee, GeoPacificEmployeeReadDto>();
+        CreateMap<Role, RoleReadDto>();
 
         CreateMap<PersonalInfoCreateDto, PersonalInfo>();
         CreateMap<GeoPacificEmployeeCreateDto, PersonalInfo>()

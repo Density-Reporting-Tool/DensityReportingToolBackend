@@ -29,6 +29,7 @@ namespace DensityReportingToolBackend.Controllers
             return Ok(employee);
         }
 
+        // Create a new GeoPacific employee
         [HttpPost("employees")]
         public async Task<ActionResult<GeoPacificEmployeeReadDto>> CreateEmployee([FromBody] GeoPacificEmployeeCreateDto dto)
         {
