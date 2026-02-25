@@ -6,7 +6,6 @@ public record ProctorAdditionalJobReadDto
 {
     public int Id { get; init; }
     public int ProctorId { get; init; }
-    public ProctorReadDto Proctor { get; init; } = null!;
     public int JobId { get; init; }
     public JobReadDto Job { get; init; } = null!;
 }
