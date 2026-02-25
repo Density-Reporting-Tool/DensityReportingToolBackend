@@ -23,7 +23,7 @@ public abstract record ProctorBaseDto
 public record ProctorReadDto : ProctorBaseDto
 {
     public int Id { get; init; }
-    public ProctorTypeReadDto ProctorType { get; init; }
+    public ProctorTypeReadDto ProctorType { get; init; } = null!;
     public LabTestReadDto LabTest { get; init; } =null!;
     public SieveReadDto? Sieve { get; init; }
     public ICollection<ProctorAdditionalJobReadDto> AdditionalJobs { get; init; } = [];
