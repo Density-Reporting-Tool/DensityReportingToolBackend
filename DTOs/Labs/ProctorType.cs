@@ -8,7 +8,6 @@ public abstract record ProctorTypeBaseDto
 public record ProctorTypeReadDto : ProctorTypeBaseDto
 {
     public int Id { get; init; }
-    public ICollection<ProctorReadDto> Proctors { get; init; } = [];
 }
 
 public record ProctorTypeCreateDto : ProctorTypeBaseDto;
