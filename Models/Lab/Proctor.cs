@@ -15,6 +15,7 @@ public class Proctor : ModelBase
     public ProctorType ProctorType { get; set; } = null!;
     
     // Test details
+    //TODO - consider moving some of these to LabTest if they are shared across multiple Proctors for the same test
     public string? MaterialType { get; set; }         
     public string? LabLocation { get; set; }        
     public DateTime? DateSampled { get; set; }       
