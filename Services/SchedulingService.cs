@@ -32,7 +32,7 @@ public class SchedulingService(AppDbContext dbContext, IMapper mapper) : ISchedu
 
         var withNavs = await dbContext.Set<JobEvent>()
             .Include(e => e.Job)
-            .Include(e => e.GeoPacificEmployee)
+            .Include(e => e.PersonalInfo)
             .FirstAsync(e => e.Id == entity.Id);
 
         return mapper.Map<ScheduleJobReadDto>(withNavs);
@@ -42,7 +42,7 @@ public class SchedulingService(AppDbContext dbContext, IMapper mapper) : ISchedu
     {
         var entity = await dbContext.Set<JobEvent>()
             .Include(e => e.Job)
-            .Include(e => e.GeoPacificEmployee)
+            .Include(e => e.PersonalInfo)
             .FirstOrDefaultAsync(e => e.Id == id);
 
         if (entity == null)
@@ -60,7 +60,7 @@ public class SchedulingService(AppDbContext dbContext, IMapper mapper) : ISchedu
     {
         var entity = await dbContext.Set<JobEvent>()
             .Include(e => e.Job)
-            .Include(e => e.GeoPacificEmployee)
+            .Include(e => e.PersonalInfo)
             .FirstOrDefaultAsync(e => e.Id == id);
 
         if (entity == null)
@@ -78,7 +78,7 @@ public class SchedulingService(AppDbContext dbContext, IMapper mapper) : ISchedu
     {
         var entity = await dbContext.Set<JobEvent>()
             .Include(e => e.Job)
-            .Include(e => e.GeoPacificEmployee)
+            .Include(e => e.PersonalInfo)
             .FirstOrDefaultAsync(e => e.Id == id);
 
         if (entity == null)
@@ -93,7 +93,7 @@ public class SchedulingService(AppDbContext dbContext, IMapper mapper) : ISchedu
     {
         var entities = await dbContext.Set<JobEvent>()
             .Include(e => e.Job)
-            .Include(e => e.GeoPacificEmployee)
+            .Include(e => e.PersonalInfo)
             .Where(e => e.StartDateTime >= start && e.EndDateTime <= end)
             .ToListAsync();
 

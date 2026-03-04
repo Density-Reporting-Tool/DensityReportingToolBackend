@@ -239,13 +239,13 @@ namespace DensityReportingToolBackend.Data
                     .HasForeignKey(e => e.JobId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                b.HasOne(e => e.GeoPacificEmployee)
+                b.HasOne(e => e.PersonalInfo)
                     .WithMany()
-                    .HasForeignKey(e => e.GeoPacificEmployeeId)
+                    .HasForeignKey(e => e.PersonalInfoId)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 b.HasIndex(e => e.JobId);
-                b.HasIndex(e => e.GeoPacificEmployeeId);
+                b.HasIndex(e => e.PersonalInfoId);
                 b.HasIndex(e => new { e.StartDateTime, e.EndDateTime });
             });
         }

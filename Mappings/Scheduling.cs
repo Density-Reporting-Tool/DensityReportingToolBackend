@@ -13,7 +13,7 @@ public class SchedulingMappingProfile : Profile
         // Entity -> Read DTO
         CreateMap<JobEvent, ScheduleJobReadDto>()
             .ForMember(d => d.Job, opt => opt.MapFrom(src => src.Job))
-            .ForMember(d => d.GeoPacificEmployee, opt => opt.MapFrom(src => src.GeoPacificEmployee));
+            .ForMember(d => d.PersonalInfo, opt => opt.MapFrom(src => src.PersonalInfo));
 
         // Create DTO -> Entity
         CreateMap<ScheduleJobCreateDto, JobEvent>()
