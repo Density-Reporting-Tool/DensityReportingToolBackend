@@ -22,6 +22,10 @@ builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddScoped<IPeopleService, PeopleService>();
 builder.Services.AddScoped<IProctorService, ProctorService>();
 
+// Add scheduling service
+builder.Services.AddScoped<ISchedulingService, SchedulingService>();
+
+
 // Add services to the container.
 //Registers MVC controllers so your API endpoints can respond to requests.
 builder.Services.AddControllers()
