@@ -14,7 +14,6 @@ public record LabTestReadDto : LabTestBaseDto
 {
     public int Id { get; init; }
     public ICollection<SieveReadDto> Sieves { get; init; } = [];
-    public ICollection<ProctorReadDto> Proctors { get; init; } = [];
 }
 
 public record LabTestCreateDto : LabTestBaseDto;

@@ -1,3 +1,4 @@
+using DensityReportingToolBackend.DTOs.Labs;
 using DensityReportingToolBackend.DTOs.Reports;
 using DensityReportingToolBackend.Models;
 
@@ -26,7 +27,7 @@ public abstract record DensityTestBaseDto
 public record DensityTestReadDto : DensityTestBaseDto
 {
     public int Id { get; init; }
-    public ProctorReadDTOLD Proctor { get; init; } = null!;
+    public ProctorSummaryDto Proctor { get; init; } = null!;
     public ReportReadDto Report { get; init; } = null!;
     public ShotPlacementReadDto? ShotPlacement { get; init; }
     public ICollection<DensityTestCommentReadDto> Comments { get; init; } = [];

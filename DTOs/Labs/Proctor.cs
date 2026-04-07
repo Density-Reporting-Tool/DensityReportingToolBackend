@@ -18,17 +18,32 @@ public abstract record ProctorBaseDto
     public double? OptimumMoistureContent { get; init; }
     public double? SpecificGravity { get; init; }
     public double? OversizePercentage { get; init; }
-
-    public ProctorTypeReadDto ProctorType { get; init; } = null!;
 }
 
 public record ProctorReadDto : ProctorBaseDto
 {
     public int Id { get; init; }
-    public LabTestReadDto LabTest { get; init; } = null!;
+    public ProctorTypeReadDto ProctorType { get; init; } = null!;
+    public LabTestReadDto LabTest { get; init; } =null!;
     public SieveReadDto? Sieve { get; init; }
     public ICollection<ProctorAdditionalJobReadDto> AdditionalJobs { get; init; } = [];
     public ICollection<DensityTestReadDto> DensityTests { get; init; } = [];
+}
+
+public record ProctorSummaryDto
+{
+    public int Id { get; init; }
+    public string? ProctorID { get; init; }
+    public string? ProctorTestNumber { get; init; }
+    public string? ProctorType { get; init; }      
+    public string? MaterialType { get; init; }
+    public string? LabLocation { get; init; }
+    public DateTime? DateTested { get; init; }
+    public double? MaxDensity { get; init; }
+    public double? CorrectedDensity { get; init; }
+    public double? OptimumMoistureContent { get; init; }
+    public string? JobNumber { get; init; }         
+    public bool IsReused { get; init; }            //true if borrowed via ProctorAdditionalJob
 }
 
 public record ProctorCreateDto : ProctorBaseDto;

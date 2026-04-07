@@ -16,10 +16,8 @@ public class ProctorBaseValidator<T> : AbstractValidator<T> where T : ProctorBas
         RuleFor(x => x.LabLocation)
             .NotEmpty().WithMessage("Lab Location is required");
 
-        RuleFor(x => x.ProctorType)
-            .NotEmpty().WithMessage("Proctor Type is required")
-            .Must(x => x.Type == "Modified" || x.Type == "Standard")
-            .WithMessage("Proctor Type must be 'Modified' or 'Standard'");
+        RuleFor(x => x.ProctorTypeId)
+            .GreaterThan(0).WithMessage("A valid Proctor Type is required");
 
         RuleFor(x => x.MaxDensity)
             .InclusiveBetween(0, 3000)
