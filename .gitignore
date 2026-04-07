@@ -1,3 +1,7 @@
+# Secrets
+appsettings.development.json
+.env
+
 # Build folders
 bin/
 obj/
