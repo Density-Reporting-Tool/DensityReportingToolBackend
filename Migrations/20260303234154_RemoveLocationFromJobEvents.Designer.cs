@@ -3,6 +3,7 @@ using System;
 using DensityReportingToolBackend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DensityReportingToolBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260303234154_RemoveLocationFromJobEvents")]
+    partial class RemoveLocationFromJobEvents
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -275,10 +278,10 @@ namespace DensityReportingToolBackend.Migrations
                     b.Property<DateTimeOffset>("EndDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("JobId")
+                    b.Property<int>("GeoPacificEmployeeId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("PersonalInfoId")
+                    b.Property<int>("JobId")
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("StartDateTime")
@@ -291,9 +294,9 @@ namespace DensityReportingToolBackend.Migrations
 
                     b.HasIndex("CreatedById");
 
-                    b.HasIndex("JobId");
+                    b.HasIndex("GeoPacificEmployeeId");
 
-                    b.HasIndex("PersonalInfoId");
+                    b.HasIndex("JobId");
 
                     b.HasIndex("StartDateTime", "EndDateTime");
 
@@ -953,23 +956,23 @@ namespace DensityReportingToolBackend.Migrations
                         .WithMany()
                         .HasForeignKey("CreatedById");
 
+                    b.HasOne("DensityReportingToolBackend.Models.GeoPacificEmployee", "GeoPacificEmployee")
+                        .WithMany()
+                        .HasForeignKey("GeoPacificEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("DensityReportingToolBackend.Models.Job", "Job")
                         .WithMany()
                         .HasForeignKey("JobId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("DensityReportingToolBackend.Models.PersonalInfo", "PersonalInfo")
-                        .WithMany()
-                        .HasForeignKey("PersonalInfoId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("CreatedBy");
 
-                    b.Navigation("Job");
+                    b.Navigation("GeoPacificEmployee");
 
-                    b.Navigation("PersonalInfo");
+                    b.Navigation("Job");
                 });
 
             modelBuilder.Entity("DensityReportingToolBackend.Models.JobNote", b =>

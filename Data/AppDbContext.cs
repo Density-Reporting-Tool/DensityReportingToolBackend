@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using DensityReportingToolBackend.Models;
 
 namespace DensityReportingToolBackend.Data
@@ -43,6 +43,10 @@ namespace DensityReportingToolBackend.Data
         public DbSet<Proctor> Proctors => Set<Proctor>();
         public DbSet<ProctorType> ProctorTypes => Set<ProctorType>();
         public DbSet<ProctorAdditionalJob> ProctorAdditionalJobs => Set<ProctorAdditionalJob>();
+
+        // Scheduled Jobs
+        public DbSet<JobEvent> JobEvents => Set<JobEvent>();
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -225,6 +229,25 @@ namespace DensityReportingToolBackend.Data
 
             // Note: Check constraint for distribution list validation removed due to PostgreSQL limitations
             // This validation will be handled at the application level
+
+            // ---------- Scheduled Jobs ----------
+            modelBuilder.Entity<JobEvent>(b => {
+                b.ToTable("JobEvents");
+
+                b.HasOne(e => e.Job)
+                    .WithMany()                // or .WithMany(j => j.JobEvents) if you add a collection
+                    .HasForeignKey(e => e.JobId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasOne(e => e.PersonalInfo)
+                    .WithMany()
+                    .HasForeignKey(e => e.PersonalInfoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasIndex(e => e.JobId);
+                b.HasIndex(e => e.PersonalInfoId);
+                b.HasIndex(e => new { e.StartDateTime, e.EndDateTime });
+            });
         }
     }
 }
