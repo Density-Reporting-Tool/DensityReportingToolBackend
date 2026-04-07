@@ -100,6 +100,10 @@ public class ProctorService(AppDbContext dbContext, IMapper mapper) : IProctorSe
 
     public async Task<ProctorReadDto> CreateProctorAsync(ProctorCreateDto dto)
     {
+        var labTestExists = await dbContext.LabTests.AnyAsync(lt => lt.Id == dto.LabTestId);
+        if (!labTestExists)
+            throw new KeyNotFoundException($"LabTest with ID {dto.LabTestId} not found.");
+
         var proctor = mapper.Map<Proctor>(dto);
         await dbContext.AddAsync(proctor);
         await dbContext.SaveChangesAsync();
