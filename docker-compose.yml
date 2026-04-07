@@ -1,0 +1,21 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: density-backend-dev
+    ports:
+      - "5013:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+    env_file:
+      - .env
+    volumes:
+      - .:/app        # This combined with dotnet watch run lets the container see changes to the source code
+                      # and restart the server. This whole directory is mounted to the container.
+      - /app/bin      # Anonymous volume: replaces the container's /app/bin directory with an empty
+                      # Docker-managed volume. Prevents host build artifacts from leaking into the container.
+      - /app/obj      # Anonymous volume: same as above, but for /app/obj. Keeps intermediate build
+                      # files isolated inside Docker so they don’t conflict with local ones.
+    entrypoint: ["dotnet", "watch", "run", "--urls", "http://+:8080"]

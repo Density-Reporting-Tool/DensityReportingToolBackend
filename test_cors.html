@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test - Density Reporting Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { border-color: #4CAF50; background-color: #f1f8e9; }
+        .error { border-color: #f44336; background-color: #ffebee; }
+        .info { border-color: #2196F3; background-color: #e3f2fd; }
+        button {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 CORS Test - Density Reporting Tool Backend</h1>
+        <p>This page tests the CORS configuration of your .NET backend API.</p>
+        
+        <div class="test-section info">
+            <h3>📋 Test Information</h3>
+            <p><strong>Backend URL:</strong> http://localhost:5000</p>
+            <p><strong>Frontend Origin:</strong> <span id="currentOrigin"></span></p>
+            <p><strong>Expected CORS Headers:</strong> Access-Control-Allow-Origin should include your frontend origin</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test CORS Configuration</h3>
+            <button onclick="testCORS()">Test CORS Headers</button>
+            <button onclick="testAPIEndpoints()">Test API Endpoints</button>
+            <button onclick="clearResults()">Clear Results</button>
+            
+            <div id="corsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔗 Test API Connectivity</h3>
+            <button onclick="testSwagger()">Test Swagger Access</button>
+            <button onclick="testEmployees()">Test Employees Endpoint</button>
+            <button onclick="testContractors()">Test Contractors Endpoint</button>
+            <button onclick="testPeople()">Test People Endpoint</button>
+            
+            <div id="apiResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 CORS Headers Analysis</h3>
+            <div id="corsAnalysis"></div>
+        </div>
+    </div>
+
+    <script>
+        // Display current origin
+        document.getElementById('currentOrigin').textContent = window.location.origin;
+
+        async function testCORS() {
+            const resultDiv = document.getElementById('corsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing CORS configuration...';
+            
+            try {
+                // Test OPTIONS request (preflight)
+                const response = await fetch('http://localhost:5000/api/test/employees', {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'GET',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers'),
+                    'Access-Control-Allow-Credentials': response.headers.get('Access-Control-Allow-Credentials')
+                };
+                
+                resultDiv.innerHTML = `
+                    <div class="status success">✅ CORS Preflight Successful</div>
+                    <strong>CORS Headers:</strong>
+                    ${Object.entries(corsHeaders).map(([key, value]) => 
+                        `${key}: ${value || 'Not Set'}`
+                    ).join('\n')}
+                `;
+                
+                analyzeCORS(corsHeaders);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">❌ CORS Test Failed</div>
+                    <strong>Error:</strong> ${error.message}
+                `;
+            }
+        }
+
+        async function testAPIEndpoints() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing API endpoints...';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/test/employees');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="status success">✅ API Endpoint Accessible</div>
+                        <strong>Response Status:</strong> ${response.status} ${response.statusText}
+                        <strong>Data Count:</strong> ${data.length} employees
+                        <strong>Sample Data:</strong>
+                        ${JSON.stringify(data.slice(0, 2), null, 2)}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">❌ API Endpoint Failed</div>
+                        <strong>Status:</strong> ${response.status} ${response.statusText}
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">❌ API Test Failed</div>
+                    <strong>Error:</strong> ${error.message}
+                `;
+            }
+        }
+
+        async function testSwagger() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing Swagger access...';
+            
+            try {
+                const response = await fetch('http://localhost:5000/swagger');
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">✅ Swagger Accessible</div>
+                        <strong>Status:</strong> ${response.status} ${response.statusText}
+                        <strong>Content Type:</strong> ${response.headers.get('Content-Type')}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">❌ Swagger Access Failed</div>
+                        <strong>Status:</strong> ${response.status} ${response.statusText}
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">❌ Swagger Test Failed</div>
+                    <strong>Error:</strong> ${error.message}
+                `;
+            }
+        }
+
+        async function testEmployees() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing employees endpoint...';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/test/employees');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="status success">✅ Employees Endpoint Working</div>
+                        <strong>Count:</strong> ${data.length} employees
+                        <strong>Data:</strong>
+                        ${JSON.stringify(data, null, 2)}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">❌ Employees Endpoint Failed</div>
+                        <strong>Status:</strong> ${response.status} ${response.statusText}
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">❌ Employees Test Failed</div>
+                    <strong>Error:</strong> ${error.message}
+                `;
+            }
+        }
+
+        async function testContractors() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing contractors endpoint...';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/test/contractors');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="status success">✅ Contractors Endpoint Working</div>
+                        <strong>Count:</strong> ${data.length} contractors
+                        <strong>Data:</strong>
+                        ${JSON.stringify(data, null, 2)}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">❌ Contractors Endpoint Failed</div>
+                        <strong>Status:</strong> ${response.status} ${response.statusText}
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">❌ Contractors Test Failed</div>
+                    <strong>Error:</strong> ${error.message}
+                `;
+            }
+        }
+
+        async function testPeople() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing people endpoint...';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/people');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="status success">✅ People Endpoint Working</div>
+                        <strong>Count:</strong> ${data.length} people
+                        <strong>Data:</strong>
+                        ${JSON.stringify(data, null, 2)}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">❌ People Endpoint Failed</div>
+                        <strong>Status:</strong> ${response.status} ${response.statusText}
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">❌ People Test Failed</div>
+                    <strong>Error:</strong> ${error.message}
+                `;
+            }
+        }
+
+        function analyzeCORS(headers) {
+            const analysisDiv = document.getElementById('corsAnalysis');
+            let analysis = '<h4>CORS Configuration Analysis:</h4>';
+            
+            if (headers['Access-Control-Allow-Origin'] === '*') {
+                analysis += '<p class="success">✅ Allows all origins (development-friendly)</p>';
+            } else if (headers['Access-Control-Allow-Origin'] === window.location.origin) {
+                analysis += '<p class="success">✅ Allows your specific origin</p>';
+            } else if (headers['Access-Control-Allow-Origin']) {
+                analysis += '<p class="info">⚠️ Allows specific origin: ' + headers['Access-Control-Allow-Origin'] + '</p>';
+            } else {
+                analysis += '<p class="error">❌ No Access-Control-Allow-Origin header found</p>';
+            }
+            
+            if (headers['Access-Control-Allow-Methods']) {
+                analysis += '<p class="success">✅ Methods allowed: ' + headers['Access-Control-Allow-Methods'] + '</p>';
+            } else {
+                analysis += '<p class="info">⚠️ No Access-Control-Allow-Methods header</p>';
+            }
+            
+            if (headers['Access-Control-Allow-Headers']) {
+                analysis += '<p class="success">✅ Headers allowed: ' + headers['Access-Control-Allow-Headers'] + '</p>';
+            } else {
+                analysis += '<p class="info">⚠️ No Access-Control-Allow-Headers header</p>';
+            }
+            
+            analysisDiv.innerHTML = analysis;
+        }
+
+        function clearResults() {
+            document.getElementById('corsResult').style.display = 'none';
+            document.getElementById('apiResult').style.display = 'none';
+            document.getElementById('corsAnalysis').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
+

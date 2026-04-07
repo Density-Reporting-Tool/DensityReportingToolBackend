@@ -25,3 +25,68 @@ run 'dotnet ef database update'
 
 Running the Server:
 run 'dotnet run'
+
+
+## 🧪 **Testing**
+
+### **Quick Test (Recommended):**
+```bash
+./tests/quick_test.sh
+```
+
+### **Full Test Suite:**
+```bash
+./tests/run_all_tests.sh
+```
+
+### **Individual Tests:**
+```bash
+# Quick test
+./tests/quick_test.sh
+
+# Full test
+./tests/test_job_creation.sh
+
+# PowerShell (Windows/Mac)
+./tests/test_job_creation.ps1
+```
+
+### **Test Features:**
+- ✅ Random job numbers (15000-25000)
+- ✅ Job creation and retrieval
+- ✅ Database persistence verification
+- ✅ JSON response formatting
+
+# Setup
+
+## Docker Dev (recommended)
+### 1. Clone the repo
+```bash
+git clone https://github.com/Density-Reporting-Tool/DensityReportingToolBackend.git
+```
+
+### 2. Add your secret .env file
+see .env.example for a template
+
+### 3. Build and run the container
+```bash
+docker compose up --build
+```
+
+## Local Dev (for fast debugging with breakpoints)
+
+### 1. clone the repo
+```bash
+git clone https://github.com/Density-Reporting-Tool/DensityReportingToolBackend.git
+```
+
+### 2. Add your secret .env file
+see .env.example for a template
+
+### 3. Install dependencies
+
+### 4. Run the server
+```bash
+dotnet run
+```
+

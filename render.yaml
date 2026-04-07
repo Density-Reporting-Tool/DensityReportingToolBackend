@@ -1,0 +1,16 @@
+services:
+  # ASP.NET Core Web Service
+  - type: web
+    name: densityreporting-backend
+    runtime: docker
+    plan: free
+    buildCommand: docker build -t densityreporting-backend .
+    startCommand: docker run -p $PORT:$PORT densityreporting-backend
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        value: Host=ep-purple-art-aa9fvlr7-pooler.westus3.azure.neon.tech; Database=neondb; Username=neondb_owner; Password=npg_ygUF4x0pNEbX; SSL Mode=VerifyFull; Channel Binding=Require;
+      - key: ASPNETCORE_URLS
+        value: http://+:$PORT
+    autoDeploy: true
