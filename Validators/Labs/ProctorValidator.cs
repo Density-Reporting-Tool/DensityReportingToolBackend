@@ -55,8 +55,11 @@ public class ProctorCreateValidator : ProctorBaseValidator<ProctorCreateDto>
 {
     public ProctorCreateValidator()
     {
-        RuleFor(x => x.LabTestId)
-            .GreaterThan(0).WithMessage("Proctor must be associated with a valid Lab Test.");
+        RuleFor(x => x)
+            .Must(x => (x.LabTestId.HasValue && x.LabTestId > 0)
+                    || (x.JobId.HasValue && x.JobId > 0)
+                    || !string.IsNullOrWhiteSpace(x.JobNumber))
+            .WithMessage("A LabTestId, JobId, or JobNumber must be provided to associate the proctor with a job.");
     }
 }
 
@@ -67,5 +70,9 @@ public class ProctorUpdateValidator : ProctorBaseValidator<ProctorUpdateDto>
         RuleFor(x => x.Id)
             .NotEmpty().WithMessage("A valid ID is required for updates")
             .GreaterThan(0).WithMessage("A valid ID is required for updates");
+
+        RuleFor(x => x.LabTestId)
+            .NotNull().WithMessage("LabTestId is required for updates.")
+            .GreaterThan(0).WithMessage("A valid Lab Test ID is required for updates.");
     }
 }

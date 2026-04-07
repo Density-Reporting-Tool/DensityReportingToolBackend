@@ -100,11 +100,41 @@ public class ProctorService(AppDbContext dbContext, IMapper mapper) : IProctorSe
 
     public async Task<ProctorReadDto> CreateProctorAsync(ProctorCreateDto dto)
     {
-        var labTestExists = await dbContext.LabTests.AnyAsync(lt => lt.Id == dto.LabTestId);
-        if (!labTestExists)
-            throw new KeyNotFoundException($"LabTest with ID {dto.LabTestId} not found.");
+        int labTestId;
+
+        if (dto.LabTestId.HasValue && dto.LabTestId > 0)
+        {
+            var labTestExists = await dbContext.LabTests.AnyAsync(lt => lt.Id == dto.LabTestId);
+            if (!labTestExists)
+                throw new KeyNotFoundException($"LabTest with ID {dto.LabTestId} not found.");
+            labTestId = dto.LabTestId.Value;
+        }
+        else
+        {
+            int jobId;
+
+            if (dto.JobId.HasValue && dto.JobId > 0)
+            {
+                var jobExists = await dbContext.Jobs.AnyAsync(j => j.Id == dto.JobId);
+                if (!jobExists)
+                    throw new KeyNotFoundException($"Job with ID {dto.JobId} not found.");
+                jobId = dto.JobId.Value;
+            }
+            else
+            {
+                var job = await dbContext.Jobs.FirstOrDefaultAsync(j => j.JobNumber == dto.JobNumber)
+                    ?? throw new KeyNotFoundException($"Job with number '{dto.JobNumber}' not found.");
+                jobId = job.Id;
+            }
+
+            var labTest = new LabTest { JobId = jobId };
+            await dbContext.LabTests.AddAsync(labTest);
+            await dbContext.SaveChangesAsync();
+            labTestId = labTest.Id;
+        }
 
         var proctor = mapper.Map<Proctor>(dto);
+        proctor.LabTestId = labTestId;
         await dbContext.AddAsync(proctor);
         await dbContext.SaveChangesAsync();
 

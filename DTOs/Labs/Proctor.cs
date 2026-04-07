@@ -6,7 +6,7 @@ public abstract record ProctorBaseDto
 {
     public string? ProctorID { get; init; }
     public string? ProctorTestNumber { get; init; }
-    public int LabTestId { get; init; }
+    public int? LabTestId { get; init; }
     public int? SieveId { get; init; }
     public int ProctorTypeId { get; init; }
     public string? MaterialType { get; init; }
@@ -46,7 +46,11 @@ public record ProctorSummaryDto
     public bool IsReused { get; init; }            //true if borrowed via ProctorAdditionalJob
 }
 
-public record ProctorCreateDto : ProctorBaseDto;
+public record ProctorCreateDto : ProctorBaseDto
+{
+    public int? JobId { get; init; }
+    public string? JobNumber { get; init; }
+}
 
 public record ProctorUpdateDto : ProctorBaseDto
 {
