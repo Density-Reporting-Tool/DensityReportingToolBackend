@@ -10,6 +10,7 @@ public class JobMappingProfile : Profile
     public JobMappingProfile()
     {
         CreateMap<Job, JobReadDto>();
+        CreateMap<Job, JobRefDto>();
         CreateMap<JobCreateDto, Job>().ForMember(dest => dest.Id, opt => opt.Ignore());
         CreateMap<JobUpdateDto, Job>();
 

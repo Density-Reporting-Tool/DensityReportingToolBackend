@@ -2,6 +2,7 @@ namespace DensityReportingToolBackend.DTOs.Labs;
 
 using DensityReportingToolBackend.DTOs.Jobs;
 
+
 public abstract record LabTestBaseDto
 {
     public int JobId { get; init; }
@@ -13,6 +14,7 @@ public abstract record LabTestBaseDto
 public record LabTestReadDto : LabTestBaseDto
 {
     public int Id { get; init; }
+    public JobRefDto? Job { get; init; }
     public ICollection<SieveReadDto> Sieves { get; init; } = [];
 }
 

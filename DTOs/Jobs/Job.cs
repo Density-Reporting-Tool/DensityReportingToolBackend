@@ -39,3 +39,9 @@ public record JobUpdateDto : JobBaseDto
 {
     public int Id { get; init; }
 }
+
+public record JobRefDto
+{
+    public int Id { get; init; }
+    public string JobNumber { get; init; } = string.Empty;
+}
