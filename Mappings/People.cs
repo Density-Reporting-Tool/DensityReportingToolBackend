@@ -23,5 +23,9 @@ public class PeopleMappingProfile : Profile
         CreateMap<PersonalInfoCreateDto, PersonalInfo>();
         CreateMap<GeoPacificEmployeeCreateDto, PersonalInfo>()
             .ForMember(d => d.Company, opt => opt.Ignore());
+
+        CreateMap<PersonalInfoUpdateDto, PersonalInfo>();
+        CreateMap<GeoPacificEmployeeUpdateDto, PersonalInfo>()
+            .ForMember(d => d.Company, opt => opt.Ignore());
     }
 }

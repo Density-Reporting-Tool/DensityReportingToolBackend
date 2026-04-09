@@ -26,3 +26,27 @@ public class ContractorCreateValidator : AbstractValidator<PersonalInfoCreateDto
         RuleFor(x => x.Company).NotEmpty();
     }
 }
+
+public class EmployeeUpdateValidator : AbstractValidator<GeoPacificEmployeeUpdateDto>
+{
+    public EmployeeUpdateValidator()
+    {
+        RuleFor(x => x.Id).GreaterThan(0);
+        RuleFor(x => x.FirstName).NotEmpty();
+        RuleFor(x => x.LastName).NotEmpty();
+        RuleFor(x => x.Email).NotEmpty().EmailAddress();
+        RuleFor(x => x.PhoneNumber).NotEmpty();
+        RuleFor(x => x.RoleId).GreaterThan(0);
+    }
+}
+
+public class ContractorUpdateValidator : AbstractValidator<PersonalInfoUpdateDto>
+{
+    public ContractorUpdateValidator()
+    {
+        RuleFor(x => x.Id).GreaterThan(0);
+        RuleFor(x => x.FirstName).NotEmpty();
+        RuleFor(x => x.LastName).NotEmpty();
+        RuleFor(x => x.Email).NotEmpty().EmailAddress();
+    }
+}

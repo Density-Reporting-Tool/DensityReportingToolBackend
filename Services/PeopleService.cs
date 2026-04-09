@@ -1,20 +1,71 @@
 using AutoMapper;
 using DensityReportingToolBackend.Data;
 using DensityReportingToolBackend.DTOs.People;
+using DensityReportingToolBackend.Infrastructure.Common;
+using DensityReportingToolBackend.Infrastructure.Extensions;
 using DensityReportingToolBackend.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace DensityReportingToolBackend.Services;
 public interface IPeopleService
 {
+    Task<PagedResult<PersonListFlatDto>> GetAllPeopleAsync(int pageNumber, int pageSize);
+    Task<GeoPacificEmployeeFlatDto?> GetEmployeeByIdAsync(int id);
+    Task<PersonalInfoReadDto?> GetContractorByIdAsync(int id);
     Task<GeoPacificEmployeeReadDto> CreateEmployeeAsync(GeoPacificEmployeeCreateDto dto);
     Task<PersonalInfoReadDto> CreateContractorAsync(PersonalInfoCreateDto dto);
-    Task<GeoPacificEmployeeFlatDto?> GetEmployeeByIdAsync(int id);
-    Task<IEnumerable<PersonListFlatDto>> GetAllPeopleAsync();
+    Task<GeoPacificEmployeeReadDto?> UpdateEmployeeAsync(int id, GeoPacificEmployeeUpdateDto dto);
+    Task<PersonalInfoReadDto?> UpdateContractorAsync(int id, PersonalInfoUpdateDto dto);
 }
 
 public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleService
 {
+    public async Task<PagedResult<PersonListFlatDto>> GetAllPeopleAsync(int pageNumber, int pageSize)
+    {
+        var query = dbContext.PersonalInfos
+            .Include(p => p.Employee)
+                .ThenInclude(e => e!.Role)
+            .AsNoTracking()
+            .OrderBy(p => p.LastName);
+
+        var pagedEntities = await query.ToPagedResultAsync(pageNumber, pageSize);
+
+        var dtos = pagedEntities.Items.Select(p =>
+        {
+            var dto = mapper.Map<PersonListFlatDto>(p);
+            dto.PersonType = p.Employee != null ? "GeoPacific Employee" : "Contact";
+            dto.Role = p.Employee?.Role?.RoleTitle;
+            return dto;
+        }).ToList();
+
+        return new PagedResult<PersonListFlatDto>(dtos, pagedEntities.Metadata);
+    }
+
+    public async Task<GeoPacificEmployeeFlatDto?> GetEmployeeByIdAsync(int id)
+    {
+        var employee = await dbContext.GeoPacificEmployees
+            .Include(e => e.PersonalInfo)
+            .Include(e => e.Role)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == id);
+
+        if (employee == null) return null;
+
+        return mapper.Map<GeoPacificEmployeeFlatDto>(employee);
+    }
+
+    public async Task<PersonalInfoReadDto?> GetContractorByIdAsync(int id)
+    {
+        var person = await dbContext.PersonalInfos
+            .Include(p => p.Employee)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id && p.Employee == null);
+
+        if (person == null) return null;
+
+        return mapper.Map<PersonalInfoReadDto>(person);
+    }
+
     public async Task<GeoPacificEmployeeReadDto> CreateEmployeeAsync(GeoPacificEmployeeCreateDto dto)
     {
         var employee = new GeoPacificEmployee
@@ -53,45 +104,44 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
         return mapper.Map<PersonalInfoReadDto>(personalInfo);
     }
 
-    public async Task<IEnumerable<PersonListFlatDto>> GetAllPeopleAsync()
-    {
-        var people = await dbContext.PersonalInfos
-            .Include(p => p.Employee)
-                .ThenInclude(e => e!.Role)
-            .AsNoTracking()
-            .ToListAsync();
-
-        var dtos = mapper.Map<IEnumerable<PersonListFlatDto>>(people);
-
-        foreach (var dto in dtos)
-        {
-            var source = people.First(p => p.Id == dto.Id);
-            
-            if (source.Employee != null)
-            {
-                dto.PersonType = "GeoPacific Employee";
-                dto.Role = source.Employee.Role?.RoleTitle;
-            }
-            else
-            {
-                dto.PersonType = "Contact";
-                dto.Role = null;
-            }
-        }
-
-        return dtos;
-    }
-
-    public async Task<GeoPacificEmployeeFlatDto?> GetEmployeeByIdAsync(int id)
+    public async Task<GeoPacificEmployeeReadDto?> UpdateEmployeeAsync(int id, GeoPacificEmployeeUpdateDto dto)
     {
         var employee = await dbContext.GeoPacificEmployees
             .Include(e => e.PersonalInfo)
-            .Include(e => e.Role)
-            .AsNoTracking()
             .FirstOrDefaultAsync(e => e.Id == id);
 
         if (employee == null) return null;
 
-        return mapper.Map<GeoPacificEmployeeFlatDto>(employee);
+        employee.PersonalInfo.FirstName = dto.FirstName;
+        employee.PersonalInfo.LastName = dto.LastName;
+        employee.PersonalInfo.Email = dto.Email;
+        employee.PersonalInfo.PhoneNumber = dto.PhoneNumber;
+        employee.RoleId = dto.RoleId;
+
+        if (!string.IsNullOrEmpty(dto.Password))
+            employee.Password = dto.Password;
+
+        await dbContext.SaveChangesAsync();
+        await dbContext.Entry(employee).Reference(e => e.Role).LoadAsync();
+
+        return mapper.Map<GeoPacificEmployeeReadDto>(employee);
+    }
+
+    public async Task<PersonalInfoReadDto?> UpdateContractorAsync(int id, PersonalInfoUpdateDto dto)
+    {
+        var person = await dbContext.PersonalInfos
+            .FirstOrDefaultAsync(p => p.Id == id && p.Employee == null);
+
+        if (person == null) return null;
+
+        person.FirstName = dto.FirstName;
+        person.LastName = dto.LastName;
+        person.Email = dto.Email;
+        person.PhoneNumber = dto.PhoneNumber;
+        person.Company = dto.Company;
+
+        await dbContext.SaveChangesAsync();
+
+        return mapper.Map<PersonalInfoReadDto>(person);
     }
 }
