@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DensityReportingToolBackend.Services;
 public interface IPeopleService
 {
+    Task<IEnumerable<RoleReadDto>> GetAllRolesAsync();
     Task<PagedResult<PersonListFlatDto>> GetAllPeopleAsync(int pageNumber, int pageSize);
     Task<GeoPacificEmployeeFlatDto?> GetEmployeeByIdAsync(int id);
     Task<PersonalInfoReadDto?> GetContractorByIdAsync(int id);
@@ -20,6 +21,16 @@ public interface IPeopleService
 
 public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleService
 {
+    public async Task<IEnumerable<RoleReadDto>> GetAllRolesAsync()
+    {
+        var roles = await dbContext.Roles
+            .AsNoTracking()
+            .OrderBy(r => r.RoleTitle)
+            .ToListAsync();
+
+        return mapper.Map<IEnumerable<RoleReadDto>>(roles);
+    }
+
     public async Task<PagedResult<PersonListFlatDto>> GetAllPeopleAsync(int pageNumber, int pageSize)
     {
         var query = dbContext.PersonalInfos
@@ -68,6 +79,8 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
 
     public async Task<GeoPacificEmployeeReadDto> CreateEmployeeAsync(GeoPacificEmployeeCreateDto dto)
     {
+        await ThrowIfEmailTakenAsync(dto.Email);
+
         var employee = new GeoPacificEmployee
         {
             PersonalInfo = new PersonalInfo
@@ -89,6 +102,8 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
 
     public async Task<PersonalInfoReadDto> CreateContractorAsync(PersonalInfoCreateDto dto)
     {
+        await ThrowIfEmailTakenAsync(dto.Email);
+
         var personalInfo = new PersonalInfo
         {
             FirstName = dto.FirstName,
@@ -112,6 +127,9 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
 
         if (employee == null) return null;
 
+        if (!string.Equals(employee.PersonalInfo.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
+            await ThrowIfEmailTakenAsync(dto.Email);
+
         employee.PersonalInfo.FirstName = dto.FirstName;
         employee.PersonalInfo.LastName = dto.LastName;
         employee.PersonalInfo.Email = dto.Email;
@@ -134,6 +152,9 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
 
         if (person == null) return null;
 
+        if (!string.Equals(person.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
+            await ThrowIfEmailTakenAsync(dto.Email);
+
         person.FirstName = dto.FirstName;
         person.LastName = dto.LastName;
         person.Email = dto.Email;
@@ -143,5 +164,14 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
         await dbContext.SaveChangesAsync();
 
         return mapper.Map<PersonalInfoReadDto>(person);
+    }
+
+    private async Task ThrowIfEmailTakenAsync(string email)
+    {
+        var exists = await dbContext.PersonalInfos
+            .AnyAsync(p => p.Email.ToLower() == email.ToLower());
+
+        if (exists)
+            throw new InvalidOperationException($"A person with email '{email}' is already registered.");
     }
 }

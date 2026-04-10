@@ -29,15 +29,20 @@ public class GlobalExceptionHandler : IExceptionHandler
                 "Validation failed",
                 fluentEx.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")
             ),
+            InvalidOperationException invalidEx => (
+                StatusCodes.Status409Conflict,
+                invalidEx.Message,
+                (IEnumerable<string>?) new[] { invalidEx.Message }
+            ),
             KeyNotFoundException => (
                 StatusCodes.Status404NotFound,
                 "The requested resource was not found.",
-                null
+                (IEnumerable<string>?) null
             ),
             _ => (
                 StatusCodes.Status500InternalServerError,
                 "An unexpected error occurred on the server.",
-                null
+                (IEnumerable<string>?) null
             )
         };
 
