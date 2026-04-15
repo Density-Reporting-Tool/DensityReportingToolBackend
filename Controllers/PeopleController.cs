@@ -15,8 +15,26 @@ namespace DensityReportingToolBackend.Controllers
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10)
         {
+            logger.LogInformation("Retrieving paged people list: Page {PageNumber}, Size {PageSize}", pageNumber, pageSize);
+
             var result = await peopleService.GetAllPeopleAsync(pageNumber, pageSize);
             return Success(result, "People retrieved successfully");
+        }
+
+        [HttpGet("search/{query}")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<PersonListFlatDto>>>> SearchPeople(
+            string query,
+            [FromQuery] int limit = 10)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return Failure<IEnumerable<PersonListFlatDto>>("Search query is required", 400);
+
+            var people = await peopleService.SearchPeopleAsync(query, limit);
+
+            if (people == null || !people.Any())
+                return Success(Enumerable.Empty<PersonListFlatDto>(), "No people matched your search criteria");
+
+            return Success(people, $"Found {people.Count()} people matching '{query}'");
         }
 
         [HttpGet("employees/{id}")]
@@ -30,7 +48,7 @@ namespace DensityReportingToolBackend.Controllers
                 return Failure<GeoPacificEmployeeFlatDto>($"Employee {id} not found", 404);
             }
 
-            return Success(employee);
+            return Success(employee, "Employee retrieved successfully");
         }
 
         [HttpGet("contractors/{id}")]
@@ -44,12 +62,14 @@ namespace DensityReportingToolBackend.Controllers
                 return Failure<PersonalInfoReadDto>($"Contractor {id} not found", 404);
             }
 
-            return Success(contractor);
+            return Success(contractor, "Contractor retrieved successfully");
         }
 
         [HttpPost("employees")]
-        public async Task<ActionResult<ApiResponse<GeoPacificEmployeeReadDto>>> CreateEmployee([FromBody] GeoPacificEmployeeCreateDto dto)
+        public async Task<ActionResult<ApiResponse<GeoPacificEmployeeFlatDto>>> CreateEmployee([FromBody] GeoPacificEmployeeCreateDto dto)
         {
+            logger.LogInformation("Creating new employee: {Email}", dto.Email);
+
             var result = await peopleService.CreateEmployeeAsync(dto);
             return Created(nameof(GetEmployee), new { id = result.Id }, result);
         }
@@ -57,17 +77,19 @@ namespace DensityReportingToolBackend.Controllers
         [HttpPost("contractors")]
         public async Task<ActionResult<ApiResponse<PersonalInfoReadDto>>> CreateContractor([FromBody] PersonalInfoCreateDto dto)
         {
+            logger.LogInformation("Creating new contractor: {Email}", dto.Email);
+
             var result = await peopleService.CreateContractorAsync(dto);
             return Created(nameof(GetContractor), new { id = result.Id }, result);
         }
 
         [HttpPut("employees/{id}")]
-        public async Task<ActionResult<ApiResponse<GeoPacificEmployeeReadDto>>> UpdateEmployee(int id, [FromBody] GeoPacificEmployeeUpdateDto dto)
+        public async Task<ActionResult<ApiResponse<GeoPacificEmployeeFlatDto>>> UpdateEmployee(int id, [FromBody] GeoPacificEmployeeUpdateDto dto)
         {
             var result = await peopleService.UpdateEmployeeAsync(id, dto);
 
             if (result == null)
-                return Failure<GeoPacificEmployeeReadDto>($"Employee {id} not found", 404);
+                return Failure<GeoPacificEmployeeFlatDto>($"Employee {id} not found", 404);
 
             return Success(result, "Employee updated successfully");
         }

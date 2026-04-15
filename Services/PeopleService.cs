@@ -11,11 +11,12 @@ public interface IPeopleService
 {
     Task<IEnumerable<RoleReadDto>> GetAllRolesAsync();
     Task<PagedResult<PersonListFlatDto>> GetAllPeopleAsync(int pageNumber, int pageSize);
+    Task<IEnumerable<PersonListFlatDto>> SearchPeopleAsync(string query, int limit);
     Task<GeoPacificEmployeeFlatDto?> GetEmployeeByIdAsync(int id);
     Task<PersonalInfoReadDto?> GetContractorByIdAsync(int id);
-    Task<GeoPacificEmployeeReadDto> CreateEmployeeAsync(GeoPacificEmployeeCreateDto dto);
+    Task<GeoPacificEmployeeFlatDto> CreateEmployeeAsync(GeoPacificEmployeeCreateDto dto);
     Task<PersonalInfoReadDto> CreateContractorAsync(PersonalInfoCreateDto dto);
-    Task<GeoPacificEmployeeReadDto?> UpdateEmployeeAsync(int id, GeoPacificEmployeeUpdateDto dto);
+    Task<GeoPacificEmployeeFlatDto?> UpdateEmployeeAsync(int id, GeoPacificEmployeeUpdateDto dto);
     Task<PersonalInfoReadDto?> UpdateContractorAsync(int id, PersonalInfoUpdateDto dto);
 }
 
@@ -52,6 +53,28 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
         return new PagedResult<PersonListFlatDto>(dtos, pagedEntities.Metadata);
     }
 
+    public async Task<IEnumerable<PersonListFlatDto>> SearchPeopleAsync(string query, int limit)
+    {
+        var people = await dbContext.PersonalInfos
+            .Include(p => p.Employee)
+                .ThenInclude(e => e!.Role)
+            .Where(p =>
+                EF.Functions.ILike(p.FirstName + " " + p.LastName, $"%{query}%") ||
+                EF.Functions.ILike(p.Email, $"%{query}%"))
+            .OrderBy(p => p.LastName)
+            .Take(limit)
+            .AsNoTracking()
+            .ToListAsync();
+
+        return people.Select(p =>
+        {
+            var dto = mapper.Map<PersonListFlatDto>(p);
+            dto.PersonType = p.Employee != null ? "GeoPacific Employee" : "Contact";
+            dto.Role = p.Employee?.Role?.RoleTitle;
+            return dto;
+        });
+    }
+
     public async Task<GeoPacificEmployeeFlatDto?> GetEmployeeByIdAsync(int id)
     {
         var employee = await dbContext.GeoPacificEmployees
@@ -77,7 +100,7 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
         return mapper.Map<PersonalInfoReadDto>(person);
     }
 
-    public async Task<GeoPacificEmployeeReadDto> CreateEmployeeAsync(GeoPacificEmployeeCreateDto dto)
+    public async Task<GeoPacificEmployeeFlatDto> CreateEmployeeAsync(GeoPacificEmployeeCreateDto dto)
     {
         await ThrowIfEmailTakenAsync(dto.Email);
 
@@ -96,22 +119,16 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
 
         await dbContext.GeoPacificEmployees.AddAsync(employee);
         await dbContext.SaveChangesAsync();
+        await dbContext.Entry(employee).Reference(e => e.Role).LoadAsync();
 
-        return mapper.Map<GeoPacificEmployeeReadDto>(employee);
+        return mapper.Map<GeoPacificEmployeeFlatDto>(employee);
     }
 
     public async Task<PersonalInfoReadDto> CreateContractorAsync(PersonalInfoCreateDto dto)
     {
         await ThrowIfEmailTakenAsync(dto.Email);
 
-        var personalInfo = new PersonalInfo
-        {
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
-            Email = dto.Email,
-            PhoneNumber = dto.PhoneNumber,
-            Company = dto.Company
-        };
+        var personalInfo = mapper.Map<PersonalInfo>(dto);
 
         await dbContext.PersonalInfos.AddAsync(personalInfo);
         await dbContext.SaveChangesAsync();
@@ -119,7 +136,7 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
         return mapper.Map<PersonalInfoReadDto>(personalInfo);
     }
 
-    public async Task<GeoPacificEmployeeReadDto?> UpdateEmployeeAsync(int id, GeoPacificEmployeeUpdateDto dto)
+    public async Task<GeoPacificEmployeeFlatDto?> UpdateEmployeeAsync(int id, GeoPacificEmployeeUpdateDto dto)
     {
         var employee = await dbContext.GeoPacificEmployees
             .Include(e => e.PersonalInfo)
@@ -130,10 +147,7 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
         if (!string.Equals(employee.PersonalInfo.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
             await ThrowIfEmailTakenAsync(dto.Email);
 
-        employee.PersonalInfo.FirstName = dto.FirstName;
-        employee.PersonalInfo.LastName = dto.LastName;
-        employee.PersonalInfo.Email = dto.Email;
-        employee.PersonalInfo.PhoneNumber = dto.PhoneNumber;
+        mapper.Map(dto, employee.PersonalInfo);
         employee.RoleId = dto.RoleId;
 
         if (!string.IsNullOrEmpty(dto.Password))
@@ -142,7 +156,7 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
         await dbContext.SaveChangesAsync();
         await dbContext.Entry(employee).Reference(e => e.Role).LoadAsync();
 
-        return mapper.Map<GeoPacificEmployeeReadDto>(employee);
+        return mapper.Map<GeoPacificEmployeeFlatDto>(employee);
     }
 
     public async Task<PersonalInfoReadDto?> UpdateContractorAsync(int id, PersonalInfoUpdateDto dto)
@@ -155,11 +169,7 @@ public class PeopleService(AppDbContext dbContext, IMapper mapper) : IPeopleServ
         if (!string.Equals(person.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
             await ThrowIfEmailTakenAsync(dto.Email);
 
-        person.FirstName = dto.FirstName;
-        person.LastName = dto.LastName;
-        person.Email = dto.Email;
-        person.PhoneNumber = dto.PhoneNumber;
-        person.Company = dto.Company;
+        mapper.Map(dto, person);
 
         await dbContext.SaveChangesAsync();
 

@@ -8,6 +8,7 @@ public class PeopleMappingProfile : Profile
 {
     public PeopleMappingProfile()
     {
+        // Entity → Read DTOs
         CreateMap<GeoPacificEmployee, GeoPacificEmployeeFlatDto>()
             .ForMember(d => d.FirstName, o => o.MapFrom(s => s.PersonalInfo.FirstName))
             .ForMember(d => d.LastName, o => o.MapFrom(s => s.PersonalInfo.LastName))
@@ -20,12 +21,22 @@ public class PeopleMappingProfile : Profile
         CreateMap<GeoPacificEmployee, GeoPacificEmployeeReadDto>();
         CreateMap<Role, RoleReadDto>();
 
+        // Create DTOs → Entity
         CreateMap<PersonalInfoCreateDto, PersonalInfo>();
         CreateMap<GeoPacificEmployeeCreateDto, PersonalInfo>()
             .ForMember(d => d.Company, opt => opt.Ignore());
 
-        CreateMap<PersonalInfoUpdateDto, PersonalInfo>();
+        CreateMap<RoleCreateDto, Role>();
+
+        // Update DTOs → Entity (Id ignored to prevent overwriting the PK)
+        CreateMap<PersonalInfoUpdateDto, PersonalInfo>()
+            .ForMember(d => d.Id, opt => opt.Ignore());
+
         CreateMap<GeoPacificEmployeeUpdateDto, PersonalInfo>()
-            .ForMember(d => d.Company, opt => opt.Ignore());
+            .ForMember(d => d.Company, opt => opt.Ignore())
+            .ForMember(d => d.Id, opt => opt.Ignore());
+
+        CreateMap<RoleUpdateDto, Role>()
+            .ForMember(d => d.Id, opt => opt.Ignore());
     }
 }
