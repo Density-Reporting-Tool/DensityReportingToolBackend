@@ -17,7 +17,7 @@ public interface ISchedulingService
     Task<ScheduleJobReadDto> DeleteJobEventAsync(int id);   // or Task if you prefer
     Task<ScheduleJobReadDto> GetJobEventByIdAsync(int id);
 
-    Task<IEnumerable<ScheduleJobReadDto>> GetEventsInRangeAsync(DateTimeOffset start, DateTimeOffset end);
+    Task<IEnumerable<ScheduleJobReadDto>> GetEventsInRangeAsync(DateTimeOffset start, DateTimeOffset end, int? personalInfoId = null);
 }
 
 public class SchedulingService(AppDbContext dbContext, IMapper mapper) : ISchedulingService
@@ -89,14 +89,17 @@ public class SchedulingService(AppDbContext dbContext, IMapper mapper) : ISchedu
         return mapper.Map<ScheduleJobReadDto>(entity);
     }
 
-    public async Task<IEnumerable<ScheduleJobReadDto>> GetEventsInRangeAsync(DateTimeOffset start, DateTimeOffset end)
+    public async Task<IEnumerable<ScheduleJobReadDto>> GetEventsInRangeAsync(DateTimeOffset start, DateTimeOffset end, int? personalInfoId = null)
     {
-        var entities = await dbContext.Set<JobEvent>()
+        var query = dbContext.Set<JobEvent>()
             .Include(e => e.Job)
             .Include(e => e.PersonalInfo)
-            .Where(e => e.StartDateTime >= start && e.EndDateTime <= end)
-            .ToListAsync();
+            .Where(e => e.StartDateTime < end && e.EndDateTime > start);
 
+        if (personalInfoId.HasValue)
+            query = query.Where(e => e.PersonalInfoId == personalInfoId.Value);
+
+        var entities = await query.ToListAsync();
         return mapper.Map<IEnumerable<ScheduleJobReadDto>>(entities);
     }
 }

@@ -23,8 +23,8 @@ public static class ProctorValidator
 
         if (string.IsNullOrWhiteSpace(dto.ProctorType))
             result.AddError(nameof(dto.ProctorType), "Proctor Type is required");
-        else if (dto.ProctorType != "Modified" && dto.ProctorType != "Standard")
-            result.AddError(nameof(dto.ProctorType), "Proctor Type must be Modified or Standard");
+        else if (dto.ProctorType != "SPDD" && dto.ProctorType != "MPDD")
+            result.AddError(nameof(dto.ProctorType), "Proctor Type must be SPDD or MPDD");
 
         if (dto.MaxDensity.HasValue && (dto.MaxDensity <= 0 || dto.MaxDensity > 3000))
             result.AddError(nameof(dto.MaxDensity), "Max Density must be between 0 and 3000 kg/m³");
@@ -54,8 +54,8 @@ public static class ProctorValidator
         if (dto.Id <= 0)
             result.AddError(nameof(dto.Id), "Valid Proctor ID is required");
 
-        if (!string.IsNullOrWhiteSpace(dto.ProctorType) && dto.ProctorType != "Modified" && dto.ProctorType != "Standard")
-            result.AddError(nameof(dto.ProctorType), "Proctor Type must be Modified or Standard");
+        if (!string.IsNullOrWhiteSpace(dto.ProctorType) && dto.ProctorType != "SPDD" && dto.ProctorType != "MPDD")
+            result.AddError(nameof(dto.ProctorType), "Proctor Type must be SPDD or MPDD");
 
         if (dto.MaxDensity.HasValue && (dto.MaxDensity <= 0 || dto.MaxDensity > 3000))
             result.AddError(nameof(dto.MaxDensity), "Max Density must be between 0 and 3000 kg/m³");

@@ -30,6 +30,8 @@ public class DensityTest
     public int ReportId { get; set; }
     public Report Report { get; set; } = null!;
 
+    public int TestNumber { get; set; }
+
     public string? TestArea { get; set; }
     public string? Location { get; set; }
 

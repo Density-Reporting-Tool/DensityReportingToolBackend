@@ -43,13 +43,14 @@ public class SchedulingController(ISchedulingService schedulingService, ILogger<
 
     [HttpGet("events")]
     public async Task<ActionResult<ApiResponse<IEnumerable<ScheduleJobReadDto>>>> GetEventsInRange(
-    [FromQuery] DateTimeOffset start,
-    [FromQuery] DateTimeOffset end)
+        [FromQuery] DateTimeOffset start,
+        [FromQuery] DateTimeOffset end,
+        [FromQuery] int? personalInfoId = null)
     {
         if (start >= end)
             return Failure<IEnumerable<ScheduleJobReadDto>>("start must be before end", 400);
 
-        var events = await schedulingService.GetEventsInRangeAsync(start, end);
+        var events = await schedulingService.GetEventsInRangeAsync(start, end, personalInfoId);
         return Success(events);
     }
 }

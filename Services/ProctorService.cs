@@ -5,106 +5,229 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DensityReportingToolBackend.Services
 {
-    /// <summary>
-    /// Service for managing Proctor operations including CRUD operations, 
-    /// density calculations, and lab test coordination.
-    /// </summary>
-    public class ProctorService(AppDbContext dbContext)
+    public interface IProctorService
     {
-        private readonly AppDbContext dbContext = dbContext;
+        // Standard CRUD - all return DTOs (matches Jobs pattern)
+        Task<IEnumerable<ProctorDataResponse>> GetAllProctorsAsync();
+        Task<ProctorDataResponse?> GetProctorAsync(int proctorId);
+        Task<IEnumerable<ProctorDataResponse>> SearchProctorsAsync(string jobNumber, int limit = 100);
+        Task<ProctorDataResponse> CreateProctorAsync(ProctorCreateDto dto);
+        Task<ProctorDataResponse> UpdateProctorAsync(int proctorId, ProctorUpdateDto dto);
 
-        #region Core Domain Operations
+        // Lab Admin - richer request/response models
+        Task<ProctorCreateResponse> CreateProctorAsync(CreateProctorRequest request);
+        Task<ProctorUpdateResponse?> UpdateProctorAsync(int id, UpdateProctorRequest request);
+        Task<ProctorListResponse> GetProctorsForLabAdminAsync(int page, int limit, string? jobNumber = null);
 
-        /// <summary>
-        /// Retrieves all proctors with their associated lab tests, jobs, and proctor types.
-        /// Results are ordered by test date (descending) and proctor ID.
-        /// </summary>
-        /// <returns>Collection of proctors with full navigation properties loaded</returns>
-        public async Task<IEnumerable<Proctor>> ListProctors()
+        // Field Tech
+        Task<DensityRequirementsResponse?> GetDensityRequirementsAsync(int id);
+
+        // Shared (by job)
+        Task<IEnumerable<ProctorDataResponse>> GetProctorsForJobAsync(string jobNumber);
+        Task<IEnumerable<ProctorDataResponse>> GetProctorsForJobByIdAsync(int jobId);
+    }
+
+    public class ProctorService(AppDbContext dbContext) : IProctorService
+    {
+        #region Public Interface Implementation
+
+        public async Task<IEnumerable<ProctorDataResponse>> GetAllProctorsAsync()
         {
-            return await dbContext.Proctors
-                        .Include(p => p.LabTest)
-                            .ThenInclude(lt => lt.Job)
-                        .Include(p => p.ProctorType)
-                        .Include(p => p.AdditionalJobs)
-                            .ThenInclude(paj => paj.Job)
-                        .OrderByDescending(p => p.DateTested)
-                        .ThenBy(p => p.ProctorID)
-                        .ToListAsync();
+            var proctors = await ListProctors();
+            return proctors.Select(ConvertToProctorDataResponse);
         }
 
-        /// <summary>
-        /// Retrieves a specific proctor by ID with all related navigation properties.
-        /// </summary>
-        /// <param name="proctorId">The unique identifier of the proctor</param>
-        /// <returns>The proctor if found, null otherwise</returns>
-        public async Task<Proctor?> GetProctorById(int proctorId)
+        public async Task<ProctorDataResponse?> GetProctorAsync(int proctorId)
         {
-            return await dbContext.Proctors
-                        .Include(p => p.LabTest)
-                            .ThenInclude(lt => lt.Job)
-                        .Include(p => p.ProctorType)
-                        .Include(p => p.AdditionalJobs)
-                            .ThenInclude(paj => paj.Job)
-                        .Include(p => p.DensityTests)
-                        .FirstOrDefaultAsync(p => p.Id == proctorId);
+            var proctor = await GetProctorById(proctorId);
+            return proctor is null ? null : ConvertToProctorDataResponse(proctor);
         }
 
-        /// <summary>
-        /// Searches for proctors by job number with fuzzy matching.
-        /// Uses a hybrid approach: first finds matching job IDs, then queries proctors using indexed foreign keys.
-        /// </summary>
-        /// <param name="jobNumber">The job number to search for (partial matches supported)</param>
-        /// <param name="limit">Maximum number of results to return (default: 10)</param>
-        /// <returns>Collection of matching proctors ordered by test date</returns>
-        public async Task<IEnumerable<Proctor>> SearchProctorsByJobNumber(string jobNumber, int limit = 100)
+        public async Task<IEnumerable<ProctorDataResponse>> SearchProctorsAsync(string jobNumber, int limit = 100)
         {
-            // Step 1: Find matching job IDs (optimized query on indexed JobNumber field)
-            var jobIds = await dbContext.Jobs
-                .Where(j => j.JobNumber.Contains(jobNumber))
-                .Select(j => j.Id)
+            var proctors = await SearchProctorsByJobNumber(jobNumber, limit);
+            return proctors.Select(ConvertToProctorDataResponse);
+        }
+
+        public async Task<ProctorDataResponse> CreateProctorAsync(ProctorCreateDto dto)
+        {
+            var proctor = await CreateProctor(dto);
+            var withNav = await GetProctorById(proctor.Id)
+                ?? throw new InvalidOperationException($"Proctor {proctor.Id} not found after creation.");
+            return ConvertToProctorDataResponse(withNav);
+        }
+
+        public async Task<ProctorDataResponse> UpdateProctorAsync(int proctorId, ProctorUpdateDto dto)
+        {
+            var proctor = await UpdateProctor(proctorId, dto);
+            var withNav = await GetProctorById(proctor.Id)
+                ?? throw new InvalidOperationException($"Proctor {proctor.Id} not found after update.");
+            return ConvertToProctorDataResponse(withNav);
+        }
+
+        public async Task<ProctorCreateResponse> CreateProctorAsync(CreateProctorRequest request)
+        {
+            var dto = ConvertToProctorCreateDto(request);
+            var proctor = await CreateProctor(dto);
+            var withNav = await GetProctorById(proctor.Id)
+                ?? throw new InvalidOperationException($"Proctor {proctor.Id} not found after creation.");
+
+            return new ProctorCreateResponse
+            {
+                Id = proctor.Id.ToString(),
+                Message = "Proctor created successfully",
+                Proctor = ConvertToProctorDataResponse(withNav, request)
+            };
+        }
+
+        public async Task<ProctorUpdateResponse?> UpdateProctorAsync(int id, UpdateProctorRequest request)
+        {
+            var dto = ConvertToProctorUpdateDto(id, request);
+            var proctor = await UpdateProctor(id, dto);
+            var withNav = await GetProctorById(proctor.Id)
+                ?? throw new InvalidOperationException($"Proctor {proctor.Id} not found after update.");
+
+            return new ProctorUpdateResponse
+            {
+                Id = proctor.Id.ToString(),
+                Message = "Proctor updated successfully",
+                Proctor = ConvertToProctorDataResponse(withNav)
+            };
+        }
+
+        public async Task<ProctorListResponse> GetProctorsForLabAdminAsync(int page, int limit, string? jobNumber = null)
+        {
+            IEnumerable<Proctor> proctors = !string.IsNullOrWhiteSpace(jobNumber)
+                ? await SearchProctorsByJobNumber(jobNumber, limit * page)
+                : await ListProctors();
+
+            var total = proctors.Count();
+            var paginatedProctors = proctors
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .ToList();
+
+            return new ProctorListResponse
+            {
+                Proctors = paginatedProctors.Select(ConvertToProctorDataResponse),
+                Total = total,
+                Page = page,
+                Limit = limit
+            };
+        }
+
+        public async Task<DensityRequirementsResponse?> GetDensityRequirementsAsync(int id)
+        {
+            var proctor = await GetProctorById(id);
+            if (proctor == null)
+                return null;
+
+            var maxDensity = proctor.MaxDensity ?? 0;
+            var correctedDensity = proctor.CorrectedDensity ?? 0;
+
+            return new DensityRequirementsResponse
+            {
+                ProctorId = proctor.Id,
+                ProctorTestNumber = proctor.ProctorTestNumber ?? "",
+                MaxDryDensity = maxDensity,
+                CorrectedDensity = correctedDensity,
+                OptimumMoisture = proctor.OptimumMoistureContent ?? 0,
+                CompactionRequirement = "95% of corrected maximum dry density",
+                TargetDensity95 = correctedDensity * 0.95,
+                TargetDensity90 = correctedDensity * 0.90,
+                TargetDensity98 = correctedDensity * 0.98,
+                MaterialType = proctor.LabTest.MaterialType ?? "",
+                TestMethod = $"{proctor.ProctorType.Type} Proctor",
+                ProctorType = proctor.ProctorType.Type,
+                SpecificGravity = proctor.SpecificGravity,
+                OversizePercentage = proctor.OversizePercentage ?? 0,
+                MoistureGuidance = $"Target moisture content: {proctor.OptimumMoistureContent ?? 0}% ± 2%"
+            };
+        }
+
+        public async Task<IEnumerable<ProctorDataResponse>> GetProctorsForJobAsync(string jobNumber)
+        {
+            var proctors = await SearchProctorsByJobNumber(jobNumber);
+            return proctors.Select(ConvertToProctorDataResponse);
+        }
+
+        public async Task<IEnumerable<ProctorDataResponse>> GetProctorsForJobByIdAsync(int jobId)
+        {
+            var proctors = await dbContext.Proctors
+                .Include(p => p.LabTest)
+                    .ThenInclude(lt => lt.Job)
+                .Include(p => p.ProctorType)
+                .Where(p => p.LabTest.JobId == jobId)
+                .OrderByDescending(p => p.DateTested)
+                .ThenBy(p => p.ProctorID)
                 .ToListAsync();
-            
-            // Early return if no jobs found
-            if (!jobIds.Any())
-                return Enumerable.Empty<Proctor>();
-            
-            // Step 2: Query proctors using job IDs (faster integer comparison on indexed FK)
+
+            return proctors.Select(ConvertToProctorDataResponse);
+        }
+
+        #endregion
+
+        #region Private Entity Operations
+
+        private async Task<IEnumerable<Proctor>> ListProctors()
+        {
             return await dbContext.Proctors
                 .Include(p => p.LabTest)
                     .ThenInclude(lt => lt.Job)
                 .Include(p => p.ProctorType)
-                .Where(p => jobIds.Contains(p.LabTest.JobId)) // Integer comparison on indexed foreign key
+                .Include(p => p.AdditionalJobs)
+                    .ThenInclude(paj => paj.Job)
+                .OrderByDescending(p => p.DateTested)
+                .ThenBy(p => p.ProctorID)
+                .ToListAsync();
+        }
+
+        private async Task<Proctor?> GetProctorById(int proctorId)
+        {
+            return await dbContext.Proctors
+                .Include(p => p.LabTest)
+                    .ThenInclude(lt => lt.Job)
+                .Include(p => p.ProctorType)
+                .Include(p => p.AdditionalJobs)
+                    .ThenInclude(paj => paj.Job)
+                .Include(p => p.DensityTests)
+                .FirstOrDefaultAsync(p => p.Id == proctorId);
+        }
+
+        private async Task<IEnumerable<Proctor>> SearchProctorsByJobNumber(string jobNumber, int limit = 100)
+        {
+            var jobIds = await dbContext.Jobs
+                .Where(j => j.JobNumber.Contains(jobNumber))
+                .Select(j => j.Id)
+                .ToListAsync();
+
+            if (!jobIds.Any())
+                return Enumerable.Empty<Proctor>();
+
+            return await dbContext.Proctors
+                .Include(p => p.LabTest)
+                    .ThenInclude(lt => lt.Job)
+                .Include(p => p.ProctorType)
+                .Where(p => jobIds.Contains(p.LabTest.JobId))
                 .OrderByDescending(p => p.DateTested)
                 .ThenBy(p => p.ProctorID)
                 .Take(limit)
                 .ToListAsync();
         }
 
-        /// <summary>
-        /// Creates a new proctor with associated lab test if needed.
-        /// Validates job existence and proctor type before creation.
-        /// </summary>
-        /// <param name="dto">The proctor creation data</param>
-        /// <returns>The created proctor with all navigation properties</returns>
-        /// <exception cref="ArgumentException">Thrown when job number or proctor type is invalid</exception>
-        public async Task<Proctor> CreateProctor(ProctorCreateDto dto)
+        private async Task<Proctor> CreateProctor(ProctorCreateDto dto)
         {
-            // Validate job exists
             var job = await dbContext.Jobs.FirstOrDefaultAsync(j => j.JobNumber == dto.JobNumber);
             if (job == null)
                 throw new ArgumentException($"Job with number '{dto.JobNumber}' does not exist.");
 
-            // Find or create lab test
             var labTest = await FindOrCreateLabTest(job.Id, dto);
 
-            // Validate proctor type exists
             var proctorType = await dbContext.ProctorTypes
                 .FirstOrDefaultAsync(pt => pt.Type == dto.ProctorType);
             if (proctorType == null)
-                throw new ArgumentException($"Proctor type '{dto.ProctorType}' not found.");
+                throw new ArgumentException($"Proctor type '{dto.ProctorType}' not found. Must be SPDD or MPDD.");
 
-            // Create proctor
             var proctor = new Proctor
             {
                 ProctorID = dto.ProctorId,
@@ -124,201 +247,29 @@ namespace DensityReportingToolBackend.Services
             return proctor;
         }
 
-        /// <summary>
-        /// Updates an existing proctor with the provided data.
-        /// Updates both proctor and associated lab test properties as needed.
-        /// </summary>
-        /// <param name="proctorId">The ID of the proctor to update</param>
-        /// <param name="dto">The update data</param>
-        /// <returns>The updated proctor</returns>
-        /// <exception cref="KeyNotFoundException">Thrown when proctor is not found</exception>
-        public async Task<Proctor> UpdateProctor(int proctorId, ProctorUpdateDto dto)
+        private async Task<Proctor> UpdateProctor(int proctorId, ProctorUpdateDto dto)
         {
             var proctor = await dbContext.Proctors
                 .Include(p => p.LabTest)
-                .FirstOrDefaultAsync(p => p.Id == proctorId);
+                .FirstOrDefaultAsync(p => p.Id == proctorId)
+                ?? throw new KeyNotFoundException($"Proctor with ID {proctorId} not found.");
 
-            if (proctor == null)
-                throw new KeyNotFoundException($"Proctor with ID {proctorId} not found.");
-
-            // Update proctor properties if provided
             UpdateProctorProperties(proctor, dto);
-
-            // Update lab test properties if provided
             await UpdateLabTestProperties(proctor.LabTest, dto);
-
             await dbContext.SaveChangesAsync();
+
             return proctor;
         }
 
         #endregion
 
-        #region Legacy API Methods (Backward Compatibility)
+        #region Private Helpers
 
-        /// <summary>
-        /// Creates a proctor using the legacy API request format.
-        /// Maintains backward compatibility with existing API consumers.
-        /// </summary>
-        /// <param name="request">The legacy creation request</param>
-        /// <returns>Legacy response format</returns>
-        public async Task<ProctorCreateResponse> CreateProctorAsync(CreateProctorRequest request)
-        {
-            var dto = ConvertToProctorCreateDto(request);
-            var proctor = await CreateProctor(dto);
-
-            return new ProctorCreateResponse
-            {
-                Id = proctor.Id.ToString(),
-                Message = "Proctor created successfully",
-                Proctor = ConvertToProctorDataResponse(proctor, request)
-            };
-        }
-
-        /// <summary>
-        /// Updates a proctor using the legacy API request format.
-        /// Maintains backward compatibility with existing API consumers.
-        /// </summary>
-        /// <param name="id">The proctor ID to update</param>
-        /// <param name="request">The legacy update request</param>
-        /// <returns>Legacy response format</returns>
-        public async Task<ProctorUpdateResponse?> UpdateProctorAsync(int id, UpdateProctorRequest request)
-        {
-            var dto = ConvertToProctorUpdateDto(id, request);
-            var proctor = await UpdateProctor(id, dto);
-
-            return new ProctorUpdateResponse
-            {
-                Id = proctor.Id.ToString(),
-                Message = "Proctor updated successfully",
-                Proctor = ConvertToProctorDataResponse(proctor)
-            };
-        }
-
-        /// <summary>
-        /// Retrieves a proctor using the legacy API response format.
-        /// Maintains backward compatibility with existing API consumers.
-        /// </summary>
-        /// <param name="id">The proctor ID</param>
-        /// <returns>Legacy response format or null if not found</returns>
-        public async Task<ProctorDataResponse?> GetProctorAsync(int id)
-        {
-            var proctor = await GetProctorById(id);
-            return proctor != null ? ConvertToProctorDataResponse(proctor) : null;
-        }
-
-        /// <summary>
-        /// Retrieves all proctors for a specific job using the legacy API response format.
-        /// Maintains backward compatibility with existing API consumers.
-        /// </summary>
-        /// <param name="jobNumber">The job number to filter by</param>
-        /// <returns>Collection of proctors in legacy response format</returns>
-        public async Task<IEnumerable<ProctorDataResponse>> GetProctorsForJobAsync(string jobNumber)
-        {
-            var proctors = await SearchProctorsByJobNumber(jobNumber);
-            return proctors.Select(ConvertToProctorDataResponse);
-        }
-
-        /// <summary>
-        /// Retrieves all proctors for a specific job using job ID.
-        /// </summary>
-        /// <param name="jobId">The job ID to filter by</param>
-        /// <returns>Collection of proctors in legacy response format</returns>
-        public async Task<IEnumerable<ProctorDataResponse>> GetProctorsForJobByIdAsync(int jobId)
-        {
-            var proctors = await dbContext.Proctors
-                .Include(p => p.LabTest)
-                    .ThenInclude(lt => lt.Job)
-                .Include(p => p.ProctorType)
-                .Where(p => p.LabTest.JobId == jobId)
-                .OrderByDescending(p => p.DateTested)
-                .ThenBy(p => p.ProctorID)
-                .ToListAsync();
-
-            return proctors.Select(ConvertToProctorDataResponse);
-        }
-
-        /// <summary>
-        /// Retrieves proctors for lab admin interface with pagination.
-        /// Supports filtering by job number and provides paginated results.
-        /// </summary>
-        /// <param name="page">Page number (1-based)</param>
-        /// <param name="limit">Number of items per page</param>
-        /// <param name="jobNumber">Optional job number filter</param>
-        /// <returns>Paginated list of proctors in legacy response format</returns>
-        public async Task<ProctorListResponse> GetProctorsForLabAdminAsync(int page, int limit, string? jobNumber = null)
-        {
-            IEnumerable<Proctor> proctors = !string.IsNullOrWhiteSpace(jobNumber)
-                ? await SearchProctorsByJobNumber(jobNumber, limit * page) // Get more to support pagination
-                : await ListProctors();
-
-            var total = proctors.Count();
-            var paginatedProctors = proctors
-                .Skip((page - 1) * limit)
-                .Take(limit)
-                .ToList();
-
-            return new ProctorListResponse
-            {
-                Proctors = paginatedProctors.Select(ConvertToProctorDataResponse),
-                Total = total,
-                Page = page,
-                Limit = limit
-            };
-        }
-
-        /// <summary>
-        /// Generates density requirements for field technicians.
-        /// Provides pre-calculated target densities and compaction guidance.
-        /// </summary>
-        /// <param name="id">The proctor ID</param>
-        /// <returns>Density requirements with field tech guidance or null if not found</returns>
-        public async Task<DensityRequirementsResponse?> GetDensityRequirementsAsync(int id)
-        {
-            var proctor = await GetProctorById(id);
-            if (proctor == null)
-                return null;
-
-            var maxDensity = proctor.MaxDensity ?? 0;
-            var correctedDensity = proctor.CorrectedDensity ?? 0;
-
-            return new DensityRequirementsResponse
-            {
-                ProctorId = proctor.Id,
-                ProctorTestNumber = proctor.ProctorTestNumber ?? "",
-                MaxDryDensity = maxDensity,
-                CorrectedDensity = correctedDensity,
-                OptimumMoisture = proctor.OptimumMoistureContent ?? 0,
-                CompactionRequirement = "95% of maximum dry density",
-                
-                // Pre-calculated target densities for field tech convenience
-                TargetDensity95 = maxDensity * 0.95,
-                TargetDensity90 = maxDensity * 0.90,
-                TargetDensity98 = maxDensity * 0.98,
-                
-                // Additional context for field techs
-                MaterialType = proctor.LabTest.MaterialType ?? "",
-                TestMethod = $"Modified Proctor ({proctor.ProctorType.Type})",
-                ProctorType = proctor.ProctorType.Type,
-                SpecificGravity = proctor.SpecificGravity,
-                OversizePercentage = proctor.OversizePercentage ?? 0,
-                
-                // Moisture guidance
-                MoistureGuidance = $"Target moisture content: {proctor.OptimumMoistureContent ?? 0}% ± 2%"
-            };
-        }
-
-        #endregion
-
-        #region Private Helper Methods
-
-        /// <summary>
-        /// Finds an existing lab test or creates a new one for the specified job and material type.
-        /// </summary>
         private async Task<LabTest> FindOrCreateLabTest(int jobId, ProctorCreateDto dto)
         {
             var labTest = await dbContext.LabTests
                 .FirstOrDefaultAsync(lt => lt.JobId == jobId && lt.MaterialType == dto.MaterialType);
-            
+
             if (labTest == null)
             {
                 labTest = new LabTest
@@ -335,104 +286,41 @@ namespace DensityReportingToolBackend.Services
             return labTest;
         }
 
-        /// <summary>
-        /// Updates proctor entity properties from the update DTO.
-        /// </summary>
         private static void UpdateProctorProperties(Proctor proctor, ProctorUpdateDto dto)
         {
             if (!string.IsNullOrWhiteSpace(dto.ProctorId))
                 proctor.ProctorID = dto.ProctorId;
-
             if (dto.MaxDensity.HasValue)
                 proctor.MaxDensity = dto.MaxDensity;
-
             if (dto.CorrectedDensity.HasValue)
                 proctor.CorrectedDensity = dto.CorrectedDensity;
-
             if (dto.OptimumMoisture.HasValue)
                 proctor.OptimumMoistureContent = dto.OptimumMoisture;
-
             if (dto.SpecificGravity.HasValue)
                 proctor.SpecificGravity = dto.SpecificGravity;
-
             if (dto.OversizePercentage.HasValue)
                 proctor.OversizePercentage = dto.OversizePercentage;
-
             if (dto.DateTested.HasValue)
                 proctor.DateTested = dto.DateTested;
         }
 
-        /// <summary>
-        /// Updates lab test entity properties from the update DTO.
-        /// </summary>
-        private async Task UpdateLabTestProperties(LabTest labTest, ProctorUpdateDto dto)
+        private static async Task UpdateLabTestProperties(LabTest labTest, ProctorUpdateDto dto)
         {
-            if (!string.IsNullOrWhiteSpace(dto.MaterialType) || 
-                !string.IsNullOrWhiteSpace(dto.LabLocation) || 
-                dto.DateSampled.HasValue)
-            {
-                if (!string.IsNullOrWhiteSpace(dto.MaterialType))
-                    labTest.MaterialType = dto.MaterialType;
+            if (!string.IsNullOrWhiteSpace(dto.MaterialType))
+                labTest.MaterialType = dto.MaterialType;
+            if (!string.IsNullOrWhiteSpace(dto.LabLocation))
+                labTest.ImportLocation = dto.LabLocation;
+            if (dto.DateSampled.HasValue)
+                labTest.ReceiveDate = dto.DateSampled;
 
-                if (!string.IsNullOrWhiteSpace(dto.LabLocation))
-                    labTest.ImportLocation = dto.LabLocation;
-
-                if (dto.DateSampled.HasValue)
-                    labTest.ReceiveDate = dto.DateSampled;
-            }
+            await Task.CompletedTask;
         }
 
-        /// <summary>
-        /// Converts a legacy CreateProctorRequest to a ProctorCreateDto.
-        /// </summary>
-        private static ProctorCreateDto ConvertToProctorCreateDto(CreateProctorRequest request)
-        {
-            return new ProctorCreateDto
-            {
-                JobNumber = request.JobNumber,
-                ProctorId = request.ProctorId,
-                MaterialType = request.MaterialType,
-                LabLocation = request.LabLocation,
-                ProctorType = request.ProctorType,
-                MaxDensity = ParseDoubleOrNull(request.MaxDryDensity),
-                CorrectedDensity = ParseDoubleOrNull(request.CorrectedDensity),
-                OptimumMoisture = request.OptimumMoisture,
-                SpecificGravity = ParseDoubleOrNull(request.SpecificGravity),
-                OversizePercentage = request.OversizePercentage,
-                DateSampled = DateTime.TryParse(request.DateSampled, out var sampledDate) ? DateTime.SpecifyKind(sampledDate, DateTimeKind.Utc) : null,
-                DateTested = DateTime.TryParse(request.DateTested, out var testedDate) ? DateTime.SpecifyKind(testedDate, DateTimeKind.Utc) : null
-            };
-        }
-
-        /// <summary>
-        /// Converts a legacy UpdateProctorRequest to a ProctorUpdateDto.
-        /// </summary>
-        private static ProctorUpdateDto ConvertToProctorUpdateDto(int id, UpdateProctorRequest request)
-        {
-            return new ProctorUpdateDto
-            {
-                Id = id,
-                ProctorId = null, // ProctorId is not updatable via UpdateProctorRequest
-                MaterialType = request.MaterialType,
-                LabLocation = request.LabLocation,
-                ProctorType = request.ProctorType,
-                MaxDensity = ParseDoubleOrNull(request.MaxDryDensity),
-                CorrectedDensity = ParseDoubleOrNull(request.CorrectedDensity),
-                OptimumMoisture = request.OptimumMoisture,
-                SpecificGravity = ParseDoubleOrNull(request.SpecificGravity),
-                OversizePercentage = request.OversizePercentage,
-                DateSampled = DateTime.TryParse(request.DateSampled, out var sampledDate) ? DateTime.SpecifyKind(sampledDate, DateTimeKind.Utc) : null,
-                DateTested = DateTime.TryParse(request.DateTested, out var testedDate) ? DateTime.SpecifyKind(testedDate, DateTimeKind.Utc) : null
-            };
-        }
-
-        /// <summary>
-        /// Converts a Proctor entity to a ProctorDataResponse for legacy API compatibility.
-        /// </summary>
         private static ProctorDataResponse ConvertToProctorDataResponse(Proctor proctor)
         {
             return new ProctorDataResponse
             {
+                Id = proctor.Id,
                 JobNumber = proctor.LabTest.Job.JobNumber,
                 ProctorTestNumber = proctor.ProctorTestNumber ?? "",
                 MaterialType = proctor.LabTest.MaterialType ?? "",
@@ -449,13 +337,11 @@ namespace DensityReportingToolBackend.Services
             };
         }
 
-        /// <summary>
-        /// Converts a Proctor entity to a ProctorDataResponse using request data for legacy API compatibility.
-        /// </summary>
         private static ProctorDataResponse ConvertToProctorDataResponse(Proctor proctor, CreateProctorRequest request)
         {
             return new ProctorDataResponse
             {
+                Id = proctor.Id,
                 JobNumber = proctor.LabTest.Job.JobNumber,
                 ProctorTestNumber = request.ProctorTestNumber,
                 MaterialType = proctor.LabTest.MaterialType ?? "",
@@ -472,14 +358,52 @@ namespace DensityReportingToolBackend.Services
             };
         }
 
-        /// <summary>
-        /// Safely parses a string to a double, returning null if parsing fails.
-        /// </summary>
+        private static ProctorCreateDto ConvertToProctorCreateDto(CreateProctorRequest request)
+        {
+            return new ProctorCreateDto
+            {
+                JobNumber = request.JobNumber,
+                ProctorId = request.ProctorId,
+                MaterialType = request.MaterialType,
+                LabLocation = request.LabLocation,
+                ProctorType = request.ProctorType,
+                MaxDensity = ParseDoubleOrNull(request.MaxDryDensity),
+                CorrectedDensity = ParseDoubleOrNull(request.CorrectedDensity),
+                OptimumMoisture = request.OptimumMoisture,
+                SpecificGravity = ParseDoubleOrNull(request.SpecificGravity),
+                OversizePercentage = request.OversizePercentage,
+                DateSampled = DateTime.TryParse(request.DateSampled, out var sampledDate)
+                    ? DateTime.SpecifyKind(sampledDate, DateTimeKind.Utc) : null,
+                DateTested = DateTime.TryParse(request.DateTested, out var testedDate)
+                    ? DateTime.SpecifyKind(testedDate, DateTimeKind.Utc) : null
+            };
+        }
+
+        private static ProctorUpdateDto ConvertToProctorUpdateDto(int id, UpdateProctorRequest request)
+        {
+            return new ProctorUpdateDto
+            {
+                Id = id,
+                ProctorId = null,
+                MaterialType = request.MaterialType,
+                LabLocation = request.LabLocation,
+                ProctorType = request.ProctorType,
+                MaxDensity = ParseDoubleOrNull(request.MaxDryDensity),
+                CorrectedDensity = ParseDoubleOrNull(request.CorrectedDensity),
+                OptimumMoisture = request.OptimumMoisture,
+                SpecificGravity = ParseDoubleOrNull(request.SpecificGravity),
+                OversizePercentage = request.OversizePercentage,
+                DateSampled = DateTime.TryParse(request.DateSampled, out var sampledDate)
+                    ? DateTime.SpecifyKind(sampledDate, DateTimeKind.Utc) : null,
+                DateTested = DateTime.TryParse(request.DateTested, out var testedDate)
+                    ? DateTime.SpecifyKind(testedDate, DateTimeKind.Utc) : null
+            };
+        }
+
         private static double? ParseDoubleOrNull(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
                 return null;
-                
             return double.TryParse(value, out var result) ? result : null;
         }
 
