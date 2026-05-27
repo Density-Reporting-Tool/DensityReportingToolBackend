@@ -5,11 +5,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DensityReportingToolBackend.Services
 {
+    public interface IReportService
+    {
+        Task<ReportCreateResponse> CreateReportAsync(CreateReportRequest request);
+        Task<ReportDetailResponse?> GetReportAsync(int reportId);
+        Task<IEnumerable<ReportListByJobResponse>> GetAllReportsAsync();
+        Task<IEnumerable<ReportListByJobResponse>> GetReportsByJobAsync(string jobNumber);
+        Task<IEnumerable<ReportListByJobResponse>> SearchReportsByJobNumberAsync(string jobNumber, int limit = 10);
+        Task<IEnumerable<ReportProctorDataResponse>> GetProctorsForJobAsync(int jobId);
+        Task<DensityTestCreateResponse> CreateDensityTestAsync(int reportId, CreateDensityTestRequest request);
+        Task<MemoInfo?> UpdateMemoAsync(int reportId, UpdateMemoRequest request);
+    }
+
     /// <summary>
-    /// Service for managing Report operations including CRUD operations, 
+    /// Service for managing Report operations including CRUD operations,
     /// density test creation, and report coordination.
     /// </summary>
-    public class ReportService(AppDbContext dbContext)
+    public class ReportService(AppDbContext dbContext) : IReportService
     {
         private readonly AppDbContext _dbContext = dbContext;
 
@@ -95,6 +107,7 @@ namespace DensityReportingToolBackend.Services
                 .Include(r => r.Employee)
                 .Include(r => r.Reviewer)
                 .Include(r => r.DensityTests)
+                    .ThenInclude(dt => dt.Proctor)
                 .Include(r => r.Photos)
                 .Include(r => r.Memos)
                 .FirstOrDefaultAsync(r => r.Id == reportId);
@@ -248,6 +261,13 @@ namespace DensityReportingToolBackend.Services
             {
                 Id = report.Id,
                 JobId = report.JobId,
+                Job = new JobInfo
+                {
+                    Id = report.Job.Id,
+                    JobNumber = report.Job.JobNumber,
+                    ClientName = report.Job.ClientName,
+                    ProjectName = report.Job.ProjectName
+                },
                 ReportNumber = report.ReportNumber,
                 StartDate = report.StartDate,
                 SubmitDate = report.SubmitDate,
@@ -308,9 +328,10 @@ namespace DensityReportingToolBackend.Services
                     Email = report.Reviewer.Email,
                     PhoneNumber = report.Reviewer.PhoneNumber
                 } : null,
-                DensityTests = report.DensityTests.Select(dt => new DensityTestInfo
+                DensityTests = report.DensityTests.OrderBy(dt => dt.TestNumber == 0 ? dt.Id : dt.TestNumber).Select(dt => new DensityTestInfo
                 {
                     Id = dt.Id,
+                    TestNumber = dt.TestNumber,
                     TestArea = dt.TestArea,
                     Location = dt.Location,
                     ElevationReference = dt.ElevationReference.ToString(),
@@ -320,7 +341,12 @@ namespace DensityReportingToolBackend.Services
                     CompactionSpecificationUnit = dt.CompactionSpecificationUnit.ToString(),
                     DensityValue = dt.DensityValue ?? 0,
                     MoistureValue = dt.MoistureValue ?? 0,
-                    CreatedDate = dt.CreatedDate ?? DateTime.UtcNow
+                    CreatedDate = dt.CreatedDate ?? DateTime.UtcNow,
+                    CompactionPercentage = dt.DensityValue.HasValue && dt.Proctor?.CorrectedDensity > 0
+                        ? Math.Round(dt.DensityValue.Value / dt.Proctor.CorrectedDensity!.Value * 100, 1)
+                        : 0,
+                    Passed = dt.DensityValue.HasValue && dt.Proctor?.CorrectedDensity > 0 && dt.CompactionSpecification.HasValue
+                        && dt.DensityValue.Value / dt.Proctor.CorrectedDensity!.Value * 100 >= dt.CompactionSpecification.Value
                 }),
                 Photos = report.Photos.Select(p => new PhotoInfo
                 {
@@ -410,11 +436,17 @@ namespace DensityReportingToolBackend.Services
                 throw new ArgumentException($"Report with ID {reportId} not found");
             }
 
+            // Compute next test number for this job (across all its reports)
+            var nextTestNumber = await _dbContext.DensityTests
+                .Where(dt => dt.Report.JobId == report.JobId)
+                .CountAsync() + 1;
+
             // Create density test
             var densityTest = new DensityTest
             {
                 ReportId = reportId,
                 ProctorId = request.ProctorId,
+                TestNumber = nextTestNumber,
                 TestArea = request.TestArea,
                 Location = request.Location,
                 ElevationReference = Enum.Parse<ElevationReference>(request.ElevationReference),
@@ -437,6 +469,44 @@ namespace DensityReportingToolBackend.Services
             {
                 Id = densityTest.Id,
                 Message = "Density test created successfully"
+            };
+        }
+
+        public async Task<MemoInfo?> UpdateMemoAsync(int reportId, UpdateMemoRequest request)
+        {
+            var report = await _dbContext.Reports.FindAsync(reportId);
+            if (report == null) return null;
+
+            var memo = await _dbContext.ReportMemos
+                .Where(m => m.ReportId == reportId)
+                .OrderByDescending(m => m.CreatedDate)
+                .FirstOrDefaultAsync();
+
+            if (memo == null)
+            {
+                memo = new ReportMemo
+                {
+                    ReportId = reportId,
+                    CreatedDate = DateTime.UtcNow
+                };
+                _dbContext.ReportMemos.Add(memo);
+            }
+
+            memo.Purpose = request.Purpose;
+            memo.CommentsAndObservations = request.CommentsAndObservations;
+            memo.Conclusion = request.Conclusion;
+            memo.UpdatedDate = DateTime.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
+
+            return new MemoInfo
+            {
+                Id = memo.Id,
+                Purpose = memo.Purpose,
+                CommentsAndObservations = memo.CommentsAndObservations,
+                Conclusion = memo.Conclusion,
+                CreatedDate = memo.CreatedDate ?? DateTime.UtcNow,
+                UpdatedDate = memo.UpdatedDate
             };
         }
 

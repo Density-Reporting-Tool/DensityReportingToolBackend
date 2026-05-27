@@ -1,4 +1,5 @@
 using DensityReportingToolBackend.DTOs.People;
+using DensityReportingToolBackend.Infrastructure;
 using DensityReportingToolBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,10 +10,10 @@ namespace DensityReportingToolBackend.Controllers
     public class PeopleController(IPeopleService peopleService, ILogger<PeopleController> logger) : ControllerBase
     {
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PersonListFlatDto>>> GetAllPeople()
+        public async Task<ActionResult<ApiResponse<IEnumerable<PersonListFlatDto>>>> GetAllPeople()
         {
             var result = await peopleService.GetAllPeopleAsync();
-            return Ok(result);
+            return Ok(ApiResponse<IEnumerable<PersonListFlatDto>>.SuccessResponse(result));
         }
 
         [HttpGet("employees/{id}")]

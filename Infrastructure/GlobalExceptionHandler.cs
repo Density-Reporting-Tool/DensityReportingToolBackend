@@ -29,6 +29,11 @@ public class GlobalExceptionHandler : IExceptionHandler
                 "Validation failed",
                 fluentEx.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")
             ),
+            ArgumentException argEx => (
+                StatusCodes.Status400BadRequest,
+                argEx.Message,
+                (IEnumerable<string>?)null
+            ),
             KeyNotFoundException => (
                 StatusCodes.Status404NotFound,
                 "The requested resource was not found.",

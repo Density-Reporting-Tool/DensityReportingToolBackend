@@ -21,6 +21,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddScoped<IPeopleService, PeopleService>();
 builder.Services.AddScoped<IProctorService, ProctorService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // Add scheduling service
 builder.Services.AddScoped<ISchedulingService, SchedulingService>();
@@ -97,7 +98,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseAuthorization();
+// Auth is intentionally omitted here — Azure AD integration planned for a future milestone.
+// Add app.UseAuthentication() + app.UseAuthorization() when auth is wired up.
 
 // Maps your controllers so they handle incoming requests
 app.MapControllers();
@@ -119,8 +121,8 @@ static async Task SeedData(AppDbContext context)
     {
         var proctorTypes = new[]
         {
-            new ProctorType { Type = "Standard" },
-            new ProctorType { Type = "Modified" }
+            new ProctorType { Type = "SPDD" },
+            new ProctorType { Type = "MPDD" }
         };
         
         context.ProctorTypes.AddRange(proctorTypes);
@@ -150,8 +152,8 @@ static async Task SeedData(AppDbContext context)
         await context.SaveChangesAsync();
         
         // Create proctors for each lab test
-        var standardType = await context.ProctorTypes.FirstAsync(pt => pt.Type == "Standard");
-        var modifiedType = await context.ProctorTypes.FirstAsync(pt => pt.Type == "Modified");
+        var standardType = await context.ProctorTypes.FirstAsync(pt => pt.Type == "SPDD");
+        var modifiedType = await context.ProctorTypes.FirstAsync(pt => pt.Type == "MPDD");
         
         foreach (var labTest in labTests)
         {

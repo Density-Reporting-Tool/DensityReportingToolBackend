@@ -42,6 +42,22 @@ namespace DensityReportingToolBackend.Models.DTOs
     }
 
     /// <summary>
+    /// Request model for updating (or creating) a report memo via PATCH /api/reports/{reportId}/memo.
+    /// Upserts the most recent memo for the report.
+    /// </summary>
+    public class UpdateMemoRequest
+    {
+        [StringLength(2000, ErrorMessage = "Purpose cannot exceed 2000 characters")]
+        public string? Purpose { get; set; }
+
+        [StringLength(2000, ErrorMessage = "Comments and observations cannot exceed 2000 characters")]
+        public string? CommentsAndObservations { get; set; }
+
+        [StringLength(2000, ErrorMessage = "Conclusion cannot exceed 2000 characters")]
+        public string? Conclusion { get; set; }
+    }
+
+    /// <summary>
     /// Request model for creating a density test
     /// </summary>
     public class CreateDensityTestRequest
@@ -89,14 +105,15 @@ namespace DensityReportingToolBackend.Models.DTOs
     {
         public int Id { get; set; }
         public int JobId { get; set; }
+        public JobInfo Job { get; set; } = new();
         public int ReportNumber { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? SubmitDate { get; set; }
         public DateTime? DistributeDate { get; set; }
-        
+
         public EmployeeInfo Employee { get; set; } = new();
         public EmployeeInfo Reviewer { get; set; } = new();
-        
+
         public int DensityTestsCount { get; set; }
         public int PhotosCount { get; set; }
         public int MemosCount { get; set; }
@@ -151,6 +168,7 @@ namespace DensityReportingToolBackend.Models.DTOs
     public class DensityTestInfo
     {
         public int Id { get; set; }
+        public int TestNumber { get; set; }
         public string? TestArea { get; set; }
         public string? Location { get; set; }
         public string? ElevationReference { get; set; }
@@ -161,6 +179,8 @@ namespace DensityReportingToolBackend.Models.DTOs
         public double DensityValue { get; set; }
         public double MoistureValue { get; set; }
         public DateTime CreatedDate { get; set; }
+        public double CompactionPercentage { get; set; }
+        public bool Passed { get; set; }
     }
 
     /// <summary>
