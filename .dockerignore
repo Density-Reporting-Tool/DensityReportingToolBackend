@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+.git/
+.gitignore
+.vs/
+.vscode/
+*.user
+.env
+.env.example
+appsettings.Development.json
+tests/results/
+tests/*.log
+*.md
+Dockerfile*
+docker-compose*.yml

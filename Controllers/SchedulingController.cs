@@ -7,7 +7,7 @@ namespace DensityReportingToolBackend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SchedulingController(ISchedulingService schedulingService, ILogger<SchedulingController> logger)
+public class SchedulingController(ISchedulingService schedulingService)
     : BaseApiController
 {
     [HttpPost("events")]
